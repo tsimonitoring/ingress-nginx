@@ -47,31 +47,31 @@ func buildIngress() *networking.Ingress {
 	}
 }
 
-func TestParseInvalidAnnotations(t *testing.T) {
+func TestParseAnnotations(t *testing.T) {
 	ing := buildIngress()
-
-	_, err := NewParser(&resolver.Mock{}).Parse(ing)
-	if err == nil {
-		t.Errorf("expected error parsing ingress with custom-http-errors")
-	}
-
 	data := map[string]string{}
-	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = "400,404,abc,502"
+	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = "400,404,500,502"
 	ing.SetAnnotations(data)
-
 	i, err := NewParser(&resolver.Mock{}).Parse(ing)
-	if err == nil {
-		t.Errorf("expected error parsing ingress with custom-http-errors")
+	if err != nil {
+		t.Errorf("unexpected error parsing ingress with custom-http-errors")
 	}
-	if i != nil {
-		t.Errorf("expected %v but got %v", nil, i)
+	val, ok := i.([]int)
+	if !ok {
+		t.Errorf("expected a []int type")
+	}
+	expected := []int{400, 404, 500, 502}
+	sort.Ints(val)
+	if !reflect.DeepEqual(expected, val) {
+		t.Errorf("expected %v but got %v", expected, val)
 	}
 }
 
-func TestParseAnnotations(t *testing.T) {
+func TestParseEnabledAnnotations(t *testing.T) {
 	ing := buildIngress()
 
 	data := map[string]string{}
+	data[parser.GetAnnotationWithPrefix("enable-custom-http-errors")] = "true"
 	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = "400,404,500,502"
 	ing.SetAnnotations(data)
 
@@ -84,8 +84,55 @@ func TestParseAnnotations(t *testing.T) {
 		t.Errorf("expected a []int type")
 	}
 
-	expected := []int{400, 404, 500, 502}
-	sort.Ints(val)
+	expected := []int{}
+
+	if !reflect.DeepEqual(expected, val) {
+		t.Errorf("expected %v but got %v", expected, val)
+	}
+}
+
+func TestParseDisabledAnnotations(t *testing.T) {
+	ing := buildIngress()
+
+	data := map[string]string{}
+	data[parser.GetAnnotationWithPrefix("enable-custom-http-errors")] = "false"
+	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = "400,404,500,502"
+	ing.SetAnnotations(data)
+
+	i, err := NewParser(&resolver.Mock{}).Parse(ing)
+	if err != nil {
+		t.Errorf("unexpected error parsing ingress with custom-http-errors")
+	}
+	val, ok := i.([]int)
+	if !ok {
+		t.Errorf("expected a []int type")
+	}
+
+	expected := []int{}
+
+	if !reflect.DeepEqual(expected, val) {
+		t.Errorf("expected %v but got %v", expected, val)
+	}
+}
+
+func TestParseInvalidAnnotations(t *testing.T) {
+	ing := buildIngress()
+
+	data := map[string]string{}
+	data[parser.GetAnnotationWithPrefix("enable-custom-http-errors")] = "fakebool"
+	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = "400,404,fakeint,502"
+	ing.SetAnnotations(data)
+
+	i, err := NewParser(&resolver.Mock{}).Parse(ing)
+	if err != nil {
+		t.Errorf("unexpected error parsing ingress with custom-http-errors")
+	}
+	val, ok := i.([]int)
+	if !ok {
+		t.Errorf("expected a []int type")
+	}
+
+	expected := []int{}
 
 	if !reflect.DeepEqual(expected, val) {
 		t.Errorf("expected %v but got %v", expected, val)
