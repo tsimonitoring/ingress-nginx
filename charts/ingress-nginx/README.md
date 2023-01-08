@@ -460,20 +460,37 @@ Kubernetes: `>=1.20.0-0`
 | defaultBackend.autoscaling.targetCPUUtilizationPercentage | int | `50` |  |
 | defaultBackend.autoscaling.targetMemoryUtilizationPercentage | int | `50` |  |
 | defaultBackend.containerSecurityContext | object | `{}` | Security Context policies for controller main container. See https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/ for notes on enabling and using sysctls # |
+| defaultBackend.defaultBackendMessage | string | `"Default Backend - 404"` |  |
 | defaultBackend.enabled | bool | `false` |  |
 | defaultBackend.existingPsp | string | `""` | Use an existing PSP instead of creating one |
 | defaultBackend.extraArgs | object | `{}` |  |
 | defaultBackend.extraEnvs | list | `[]` | Additional environment variables to set for defaultBackend pods |
-| defaultBackend.extraVolumeMounts | list | `[]` |  |
-| defaultBackend.extraVolumes | list | `[]` |  |
+| defaultBackend.extraVolumeMounts[0].mountPath | string | `"/usr/share/nginx/html/index.html"` |  |
+| defaultBackend.extraVolumeMounts[0].name | string | `"config"` |  |
+| defaultBackend.extraVolumeMounts[0].readOnly | bool | `true` |  |
+| defaultBackend.extraVolumeMounts[0].subPath | string | `"index.html"` |  |
+| defaultBackend.extraVolumeMounts[1].mountPath | string | `"/var/cache/nginx/"` |  |
+| defaultBackend.extraVolumeMounts[1].name | string | `"nginx-empty"` |  |
+| defaultBackend.extraVolumeMounts[2].mountPath | string | `"/var/run/"` |  |
+| defaultBackend.extraVolumeMounts[2].name | string | `"nginx-run"` |  |
+| defaultBackend.extraVolumeMounts[3].mountPath | string | `"/etc/nginx/conf.d/default.conf"` |  |
+| defaultBackend.extraVolumeMounts[3].name | string | `"nginx-conf"` |  |
+| defaultBackend.extraVolumeMounts[3].subPath | string | `"default.conf"` |  |
+| defaultBackend.extraVolumes[0].configMap.name | string | `"default-backend-message-configmap"` |  |
+| defaultBackend.extraVolumes[0].name | string | `"config"` |  |
+| defaultBackend.extraVolumes[1].emptyDir | object | `{}` |  |
+| defaultBackend.extraVolumes[1].name | string | `"nginx-empty"` |  |
+| defaultBackend.extraVolumes[2].emptyDir | object | `{}` |  |
+| defaultBackend.extraVolumes[2].name | string | `"nginx-run"` |  |
+| defaultBackend.extraVolumes[3].configMap.name | string | `"default-backend-nginx-conf-configmap"` |  |
+| defaultBackend.extraVolumes[3].name | string | `"nginx-conf"` |  |
 | defaultBackend.image.allowPrivilegeEscalation | bool | `false` |  |
-| defaultBackend.image.image | string | `"defaultbackend-amd64"` |  |
 | defaultBackend.image.pullPolicy | string | `"IfNotPresent"` |  |
 | defaultBackend.image.readOnlyRootFilesystem | bool | `true` |  |
-| defaultBackend.image.registry | string | `"registry.k8s.io"` |  |
+| defaultBackend.image.repository | string | `"nginx"` |  |
 | defaultBackend.image.runAsNonRoot | bool | `true` |  |
 | defaultBackend.image.runAsUser | int | `65534` |  |
-| defaultBackend.image.tag | string | `"1.5"` |  |
+| defaultBackend.image.tag | string | `"1.19.10-alpine"` |  |
 | defaultBackend.labels | object | `{}` | Labels to be added to the default backend resources |
 | defaultBackend.livenessProbe.failureThreshold | int | `3` |  |
 | defaultBackend.livenessProbe.initialDelaySeconds | int | `30` |  |
