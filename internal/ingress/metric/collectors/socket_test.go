@@ -93,7 +93,7 @@ func TestCollector(t *testing.T) {
 			data: []string{`#missing {
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -120,7 +120,7 @@ func TestCollector(t *testing.T) {
 			data: []string{`[{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -145,52 +145,52 @@ func TestCollector(t *testing.T) {
 			wantBefore: `
 			# HELP nginx_ingress_controller_connect_duration_seconds The time spent on establishing a connection with the upstream server
 			# TYPE nginx_ingress_controller_connect_duration_seconds histogram
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.005"} 0
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.01"} 0
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.025"} 0
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.05"} 0
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.1"} 0
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.25"} 0
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.5"} 0
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="1"} 1
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="2.5"} 1
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="5"} 1
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="10"} 1
-			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="+Inf"} 1
-			nginx_ingress_controller_connect_duration_seconds_sum{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200"} 1
-			nginx_ingress_controller_connect_duration_seconds_count{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200"} 1
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.005"} 0
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.01"} 0
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.025"} 0
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.05"} 0
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.1"} 0
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.25"} 0
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.5"} 0
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="1"} 1
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="2.5"} 1
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="5"} 1
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="10"} 1
+			nginx_ingress_controller_connect_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="+Inf"} 1
+			nginx_ingress_controller_connect_duration_seconds_sum{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 1
+			nginx_ingress_controller_connect_duration_seconds_count{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 1
 			# HELP nginx_ingress_controller_header_duration_seconds The time spent on receiving first header from the upstream server
 			# TYPE nginx_ingress_controller_header_duration_seconds histogram
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.005"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.01"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.025"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.05"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.1"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.25"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.5"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="1"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="2.5"} 0
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="5"} 1
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="10"} 1
-			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="+Inf"} 1
-			nginx_ingress_controller_header_duration_seconds_sum{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200"} 5
-			nginx_ingress_controller_header_duration_seconds_count{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200"} 1
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.005"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.01"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.025"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.05"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.1"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.25"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.5"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="1"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="2.5"} 0
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="5"} 1
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="10"} 1
+			nginx_ingress_controller_header_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="+Inf"} 1
+			nginx_ingress_controller_header_duration_seconds_sum{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 5
+			nginx_ingress_controller_header_duration_seconds_count{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 1
 			# HELP nginx_ingress_controller_response_duration_seconds The time spent on receiving the response from the upstream server
 			# TYPE nginx_ingress_controller_response_duration_seconds histogram
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.005"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.01"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.025"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.05"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.1"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.25"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="0.5"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="1"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="2.5"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="5"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="10"} 0
-			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",le="+Inf"} 1
-			nginx_ingress_controller_response_duration_seconds_sum{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200"} 200
-			nginx_ingress_controller_response_duration_seconds_count{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200"} 1
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.005"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.01"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.025"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.05"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.1"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.25"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.5"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="1"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="2.5"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="5"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="10"} 0
+			nginx_ingress_controller_response_duration_seconds_bucket{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="+Inf"} 1
+			nginx_ingress_controller_response_duration_seconds_sum{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 200
+			nginx_ingress_controller_response_duration_seconds_count{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 1
 			`,
 			removeIngresses: []string{"test-app-production/web-yml"},
 			wantAfter: `
@@ -201,7 +201,7 @@ func TestCollector(t *testing.T) {
 			data: []string{`[{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -222,7 +222,7 @@ func TestCollector(t *testing.T) {
 			wantBefore: `
 				# HELP nginx_ingress_controller_requests The total number of client requests
 				# TYPE nginx_ingress_controller_requests counter
-				nginx_ingress_controller_requests{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200", upsteamCacheStatus="MISS",} 1
+				nginx_ingress_controller_requests{canary="",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",} 1
 			`,
 			removeIngresses: []string{"test-app-production/web-yml"},
 			wantAfter: `
@@ -233,7 +233,7 @@ func TestCollector(t *testing.T) {
 			data: []string{`[{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -254,17 +254,17 @@ func TestCollector(t *testing.T) {
 			wantBefore: `
 				# HELP nginx_ingress_controller_response_duration_seconds The time spent on receiving the response from the upstream server
 				# TYPE nginx_ingress_controller_response_duration_seconds histogram
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="0.005"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="0.01"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="0.025"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="0.05"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="0.1"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="0.25"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="0.5"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="1"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="2.5"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="5"} 0
-				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="10"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.005"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.01"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.025"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.05"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.1"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.25"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="0.5"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="1"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="2.5"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="5"} 0
+				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="",le="10"} 0
 				nginx_ingress_controller_response_duration_seconds_bucket{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS",le="+Inf"} 1
 				nginx_ingress_controller_response_duration_seconds_sum{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 200
 				nginx_ingress_controller_response_duration_seconds_count{canary="test-app-production-test-app-canary-80",controller_class="ingress",controller_namespace="default",controller_pod="pod",host="testshop.com",ingress="web-yml",method="GET",namespace="test-app-production",path="/admin",service="test-app",status="200",upsteamCacheStatus="MISS"} 1
@@ -279,7 +279,7 @@ func TestCollector(t *testing.T) {
 			data: []string{`[{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -298,7 +298,7 @@ func TestCollector(t *testing.T) {
 			}]`, `[{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -317,7 +317,7 @@ func TestCollector(t *testing.T) {
 			}]`, `[{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -375,7 +375,7 @@ func TestCollector(t *testing.T) {
 			{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -395,7 +395,7 @@ func TestCollector(t *testing.T) {
 			{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
@@ -440,7 +440,7 @@ func TestCollector(t *testing.T) {
 			data: []string{`[{
 				"host":"testshop.com",
 				"status":"200",
-				"upsteamCacheStatus": "MISS",
+				"upsteamCacheStatus":"MISS",
 				"bytesSent":150.0,
 				"method":"GET",
 				"path":"/admin",
