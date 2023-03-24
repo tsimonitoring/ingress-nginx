@@ -26,8 +26,13 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
+
+	corev1 "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"k8s.io/ingress-nginx/test/e2e/framework"
 )
@@ -67,42 +72,96 @@ var _ = framework.IngressNginxDescribeSerial("[Admission] admission controller",
 			})
 	})
 
-	ginkgo.It("should not allow overlaps of host and paths without canary annotations", func() {
-		host := "admission-test"
+	ginkgo.When("there is overlapping ingresses", func() {
+		var host string
 
-		firstIngress := framework.NewSingleIngress("first-ingress", "/", host, f.Namespace, framework.EchoService, 80, nil)
-		_, err := f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), firstIngress, metav1.CreateOptions{})
-		assert.Nil(ginkgo.GinkgoT(), err, "creating ingress")
+		ginkgo.BeforeEach(func() {
+			host = "admission-test"
+			firstIngress := framework.NewSingleIngress("first-ingress", "/", host, f.Namespace, framework.EchoService, 80, nil)
+			f.EnsureIngress(firstIngress)
+			f.WaitForNginxServer(host,
+				func(server string) bool {
+					return strings.Contains(server, fmt.Sprintf("server_name %v", host))
+				})
+		})
 
-		f.WaitForNginxServer(host,
-			func(server string) bool {
-				return strings.Contains(server, fmt.Sprintf("server_name %v", host))
+		ginkgo.It("should not allow overlaps of host and path without canary annotations", func() {
+			secondIngress := framework.NewSingleIngress("second-ingress", "/", host, f.Namespace, framework.EchoService, 80, nil)
+			_, err := f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), secondIngress, metav1.CreateOptions{})
+			assert.True(ginkgo.GinkgoT(), k8sErrors.IsBadRequest(err), "creating an ingress with the same host and path should return an error")
+		})
+
+		ginkgo.It("should allow overlaps of host and paths with canary annotation", func() {
+			canaryAnnotations := map[string]string{
+				"nginx.ingress.kubernetes.io/canary":           "true",
+				"nginx.ingress.kubernetes.io/canary-by-header": "CanaryByHeader",
+			}
+			secondIngress := framework.NewSingleIngress("second-ingress", "/", host, f.Namespace, framework.SlowEchoService, 80, canaryAnnotations)
+			_, err := f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), secondIngress, metav1.CreateOptions{})
+			assert.Nil(ginkgo.GinkgoT(), err, "creating an ingress with the same host and path should not return an error using a canary annotation")
+		})
+
+		ginkgo.It("should not allow overlaps of host and paths from multiple ingresses with canary annotation", func() {
+			canaryAnnotations := map[string]string{
+				"nginx.ingress.kubernetes.io/canary":           "true",
+				"nginx.ingress.kubernetes.io/canary-by-header": "CanaryByHeader",
+			}
+
+			secondIngress := framework.NewSingleIngress("second-ingress", "/", host, f.Namespace, framework.SlowEchoService, 80, canaryAnnotations)
+			_, err := f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), secondIngress, metav1.CreateOptions{})
+			assert.Nil(ginkgo.GinkgoT(), err, "creating an ingress with the same host and path should not return an error using a canary annotation")
+
+			svc := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "third-ingress-svc",
+					Namespace: f.Namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name:       framework.SlowEchoService,
+							Port:       80,
+							TargetPort: intstr.FromInt(80),
+						},
+					},
+					Selector: map[string]string{
+						"app": framework.SlowEchoService,
+					},
+				},
+			}
+			f.EnsureService(svc)
+			thirdIngress := framework.NewSingleIngress("third-ingress", "/", host, f.Namespace, "third-ingress-svc", 80, canaryAnnotations)
+			_, err = f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), thirdIngress, metav1.CreateOptions{})
+			assert.True(ginkgo.GinkgoT(), k8sErrors.IsBadRequest(err), "creating multiple canary ingress with the same host and path should return an error")
+		})
+
+		ginkgo.It("should not allow overlaps of host and path in ingress comprised of multiple rules", func() {
+			secondIngress := framework.NewSingleIngress("second-ingress", "/", fmt.Sprintf("%s-non-overlapping", host), f.Namespace, framework.EchoService, 80, nil)
+			pathprefix := networking.PathTypePrefix
+			secondIngress.Spec.Rules = append(secondIngress.Spec.Rules, networking.IngressRule{
+				Host: host,
+				IngressRuleValue: networking.IngressRuleValue{
+					HTTP: &networking.HTTPIngressRuleValue{
+						Paths: []networking.HTTPIngressPath{
+							{
+								Path:     "/",
+								PathType: &pathprefix,
+								Backend: networking.IngressBackend{
+									Service: &networking.IngressServiceBackend{
+										Name: framework.EchoService,
+										Port: networking.ServiceBackendPort{
+											Number: int32(80),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			})
-
-		secondIngress := framework.NewSingleIngress("second-ingress", "/", host, f.Namespace, framework.EchoService, 80, nil)
-		_, err = f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), secondIngress, metav1.CreateOptions{})
-		assert.NotNil(ginkgo.GinkgoT(), err, "creating an ingress with the same host and path should return an error")
-	})
-
-	ginkgo.It("should allow overlaps of host and paths with canary annotation", func() {
-		host := "admission-test"
-
-		firstIngress := framework.NewSingleIngress("first-ingress", "/", host, f.Namespace, framework.EchoService, 80, nil)
-		_, err := f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), firstIngress, metav1.CreateOptions{})
-		assert.Nil(ginkgo.GinkgoT(), err, "creating ingress")
-
-		f.WaitForNginxServer(host,
-			func(server string) bool {
-				return strings.Contains(server, fmt.Sprintf("server_name %v", host))
-			})
-
-		canaryAnnotations := map[string]string{
-			"nginx.ingress.kubernetes.io/canary":           "true",
-			"nginx.ingress.kubernetes.io/canary-by-header": "CanaryByHeader",
-		}
-		secondIngress := framework.NewSingleIngress("second-ingress", "/", host, f.Namespace, framework.SlowEchoService, 80, canaryAnnotations)
-		_, err = f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), secondIngress, metav1.CreateOptions{})
-		assert.Nil(ginkgo.GinkgoT(), err, "creating an ingress with the same host and path should not return an error using a canary annotation")
+			_, err := f.KubeClientSet.NetworkingV1().Ingresses(f.Namespace).Create(context.TODO(), secondIngress, metav1.CreateOptions{})
+			assert.True(ginkgo.GinkgoT(), k8sErrors.IsBadRequest(err), "creating an ingress with the same host and path should return an error")
+		})
 	})
 
 	ginkgo.It("should block ingress with invalid path", func() {
