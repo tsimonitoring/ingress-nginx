@@ -59,6 +59,8 @@ type Config struct {
 	ID string `json:"id"`
 
 	Whitelist []string `json:"whitelist"`
+
+	Blocklist []string `json:"blocklist"`
 }
 
 // Equal tests for equality between two RateLimit types
@@ -93,8 +95,11 @@ func (rt1 *Config) Equal(rt2 *Config) bool {
 	if len(rt1.Whitelist) != len(rt2.Whitelist) {
 		return false
 	}
+	if len(rt1.Blocklist) != len(rt2.Blocklist) {
+		return false
+	}
 
-	return sets.StringElementsMatch(rt1.Whitelist, rt2.Whitelist)
+	return sets.StringElementsMatch(rt1.Blocklist, rt2.Blocklist)
 }
 
 // Zone returns information about the NGINX rate limit (limit_req_zone)
@@ -161,9 +166,14 @@ func (a ratelimit) Parse(ing *networking.Ingress) (interface{}, error) {
 		burstMultiplier = defBurst
 	}
 
-	val, _ := parser.GetStringAnnotation("limit-whitelist", ing)
+	valWhitelist, _ := parser.GetStringAnnotation("limit-whitelist", ing)
+	cidrsWhitelist, err := net.ParseCIDRs(valWhitelist)
+	if err != nil {
+		return nil, err
+	}
 
-	cidrs, err := net.ParseCIDRs(val)
+	valBlocklist, _ := parser.GetStringAnnotation("limit-blocklist", ing)
+	cidrsBlocklist, err := net.ParseCIDRs(valBlocklist)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +213,8 @@ func (a ratelimit) Parse(ing *networking.Ingress) (interface{}, error) {
 		LimitRateAfter: lra,
 		Name:           zoneName,
 		ID:             encode(zoneName),
-		Whitelist:      cidrs,
+		Whitelist:      cidrsWhitelist,
+		Blocklist:      cidrsBlocklist,
 	}, nil
 }
 
