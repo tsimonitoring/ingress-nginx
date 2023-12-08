@@ -172,7 +172,7 @@ kind-e2e-chart-tests: ## Run helm chart e2e tests
 e2e-test-binary:  ## Build binary for e2e tests.
 	@build/run-in-docker.sh \
 		MAC_OS=$(MAC_OS) \
-		ginkgo build ./test/e2e
+		GOBIN=/tmp/bin go generate tools/ginkgo.go && ls /tmp/bin/ginkgo && /tmp/bin/ginkgo build ./test/e2e
 
 .PHONY: print-e2e-suite
 print-e2e-suite: e2e-test-binary ## Prints information about the suite of e2e tests.

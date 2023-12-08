@@ -86,10 +86,6 @@ USER=${USER:-nobody}
 if [[ "$DOCKER_IN_DOCKER_ENABLED" == "true" ]]; then
   echo "..reached DIND check TRUE block, inside run-in-docker.sh"
   echo "FLAGS=$FLAGS"
-  #go env
-  go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.13.0
-  find / -type f -name ginkgo 2>/dev/null
-  which ginkgo
   /bin/bash -c "${FLAGS}"
 else
   echo "Reached DIND check ELSE block, inside run-in-docker.sh"
