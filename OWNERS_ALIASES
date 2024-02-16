@@ -26,11 +26,15 @@ aliases:
 
   ingress-nginx-helm-maintainers:
   - cpanato
+  - Gacko
   - strongjz
+  - ubergesundheit
 
   ingress-nginx-helm-reviewers:
   - cpanato
+  - Gacko
   - strongjz
+  - ubergesundheit
 
   ingress-nginx-docs-maintainers:
   - longwuyuan
