@@ -77,7 +77,7 @@ local function resolve_external_names(original_backend)
   local endpoints = {}
   for _, endpoint in ipairs(backend.endpoints) do
     local ips = dns_lookup(endpoint.address)
-    if #ips ~= 1 or ips[1] ~= endpoint.address do
+    if #ips ~= 1 or ips[1] ~= endpoint.address then
       for _, ip in ipairs(ips) do
         table.insert(endpoints, { address = ip, port = endpoint.port })
       end
