@@ -40,10 +40,12 @@ import (
 	"github.com/eapache/channels"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/ingress-nginx/pkg/tcpproxy"
 
 	adm_controller "k8s.io/ingress-nginx/internal/admission/controller"
@@ -60,6 +62,7 @@ import (
 	"k8s.io/ingress-nginx/internal/task"
 	"k8s.io/ingress-nginx/pkg/apis/ingress"
 
+	nginxdataplane "k8s.io/ingress-nginx/internal/dataplane/nginx"
 	"k8s.io/ingress-nginx/pkg/util/file"
 	utilingress "k8s.io/ingress-nginx/pkg/util/ingress"
 
@@ -108,7 +111,9 @@ func NewNGINXController(config *Configuration, mc metric.Collector) *NGINXContro
 
 		metricCollector: mc,
 
-		command: NewNginxCommand(),
+		command: nginxdataplane.NewNginxRemote("http://127.0.0.1:12345"),
+		//command: nginxdataplane.NewNginxCommand(),
+
 	}
 
 	if n.cfg.ValidationWebhook != "" {
@@ -178,6 +183,35 @@ func NewNGINXController(config *Configuration, mc metric.Collector) *NGINXContro
 	_, err = file.NewFileWatcher(nginx.TemplatePath, onTemplateChange)
 	if err != nil {
 		klog.Fatalf("Error creating file watcher for %v: %v", nginx.TemplatePath, err)
+	}
+
+	// With this test, we will check if the readiness file is not changed. This file is always created or 
+	// changed by dataplane on its start. In case the dataplane dies and restarts, the file will be 
+	// updated with the current time. 
+	// This watcher will then detect a change on the file, meaning controller should restart and reconfigure
+	// everything.
+	// It should be guaranteed by the dataplane that this file is changed just once 
+	// NGINX finishes starting
+	readinessBackoff := wait.Backoff{
+		Steps:    5,
+		Duration: 3 * time.Millisecond,
+		Factor:   5.0,
+		Jitter:   0.1,
+	}
+	err = retry.OnError(readinessBackoff, func(err error) bool {
+		return true
+	}, func() error {
+		_, errStat := os.Stat(nginxdataplane.ReadyFile)
+		return errStat
+	})
+	if err != nil {
+		klog.Fatalf("error waiting for ready file: %s", err)
+	}
+	_, err = file.NewFileWatcherUpdateOnly(nginxdataplane.ReadyFile, true, func() {
+		klog.Fatalf("readiness file changed, restarting contorller")
+	})
+	if err != nil {
+		klog.Fatalf("error creating file watcher for %v: %v", nginxdataplane.ReadyFile, err)
 	}
 
 	filesToWatch := []string{}
@@ -259,7 +293,7 @@ type NGINXController struct {
 
 	validationWebhookServer *http.Server
 
-	command NginxExecTester
+	command nginxdataplane.NginxExecutor
 }
 
 // Start starts a new NGINX master process running in the foreground.
@@ -297,21 +331,15 @@ func (n *NGINXController) Start() {
 		})
 	}
 
-	cmd := n.command.ExecCommand()
-
-	// put NGINX in another process group to prevent it
-	// to receive signals meant for the controller
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-		Pgid:    0,
-	}
-
+	// TODO: SSLPassthrough is not yet supported on dataplane mode
+	/*
 	if n.cfg.EnableSSLPassthrough {
 		n.setupSSLProxy()
 	}
+	*/
 
 	klog.InfoS("Starting NGINX process")
-	n.start(cmd)
+	n.start()
 
 	go n.syncQueue.Run(time.Second, n.stopCh)
 	// force initial sync
@@ -339,6 +367,7 @@ func (n *NGINXController) Start() {
 
 	for {
 		select {
+		// TODO: create a separate error channel for the remote executor
 		case err := <-n.ngxErrCh:
 			if n.isShuttingDown {
 				return
@@ -403,13 +432,10 @@ func (n *NGINXController) Stop() error {
 
 	// send stop signal to NGINX
 	klog.InfoS("Stopping NGINX process")
-	cmd := n.command.ExecCommand("-s", "quit")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
+	if err := n.command.Stop(); err != nil {
 		return err
 	}
+	
 
 	// wait for the NGINX process to terminate
 	timer := time.NewTicker(time.Second * 1)
@@ -424,18 +450,24 @@ func (n *NGINXController) Stop() error {
 	return nil
 }
 
-func (n *NGINXController) start(cmd *exec.Cmd) {
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		klog.Fatalf("NGINX error: %v", err)
-		n.ngxErrCh <- err
-		return
-	}
+func (n *NGINXController) start() {
 
-	go func() {
-		n.ngxErrCh <- cmd.Wait()
-	}()
+	// TODO: Start should ping the http and https ports
+	// First pass should wait it to be ready for X seconds, otherwise fail
+	// Second pass should open a goroutine and keep trying / pinging http port.
+	// After x retries it should state nginx is dead and restart everything
+	// Right now, if Dataplane dies, the dataplane container alone will be restarted
+	// This means the default configuration will come back again and will only be reload
+	// in case a full reload is requested.
+	// Another approach is to filewatch nginx.conf and if not controller changing it, reload
+	// Another problem here is: we are just re-creating the file in case it does not exists, 
+	// so dynamic reconfiguration will not be detected.
+	// We need a better way for controller to detect dataplane dying and get new information
+	// again
+	if err := n.command.Start(n.ngxErrCh); err != nil {
+		n.stopCh <- struct{}{}
+		klog.Fatalf("error starting NGINX: %s", err)
+	}
 }
 
 // DefaultEndpoint returns the default endpoint to be use as default server that returns 404.
@@ -639,7 +671,7 @@ func (n *NGINXController) testTemplate(cfg []byte) error {
 	if len(cfg) == 0 {
 		return fmt.Errorf("invalid NGINX configuration (empty)")
 	}
-	tmpDir := os.TempDir() + "/nginx"
+	tmpDir := nginxdataplane.TempDir
 	tmpfile, err := os.CreateTemp(tmpDir, tempNginxPattern)
 	if err != nil {
 		return err
@@ -649,7 +681,8 @@ func (n *NGINXController) testTemplate(cfg []byte) error {
 	if err != nil {
 		return err
 	}
-	out, err := n.command.Test(tmpfile.Name())
+	tmpfileName := filepath.Base(tmpfile.Name())
+	out, err := n.command.Test(tmpfileName)
 	if err != nil {
 		// this error is different from the rest because it must be clear why nginx is not working
 		oe := fmt.Sprintf(`
@@ -692,11 +725,12 @@ func (n *NGINXController) OnUpdate(ingressCfg ingress.Configuration) error {
 	}
 
 	if klog.V(2).Enabled() {
-		src, err := os.ReadFile(cfgPath)
+		src, err := os.ReadFile(nginxdataplane.CfgPath)
 		if err != nil {
 			return err
 		}
 		if !bytes.Equal(src, content) {
+			// TODO: This test should run on dataplane side
 			tmpfile, err := os.CreateTemp("", "new-nginx-cfg")
 			if err != nil {
 				return err
@@ -707,7 +741,7 @@ func (n *NGINXController) OnUpdate(ingressCfg ingress.Configuration) error {
 				return err
 			}
 			//nolint:gosec //Ignore G204 error
-			diffOutput, err := exec.Command("diff", "-I", "'# Configuration.*'", "-u", cfgPath, tmpfile.Name()).CombinedOutput()
+			diffOutput, err := exec.Command("diff", "-I", "'# Configuration.*'", "-u", nginxdataplane.CfgPath, tmpfile.Name()).CombinedOutput()
 			if err != nil {
 				if exitError, ok := err.(*exec.ExitError); ok {
 					ws, ok := exitError.Sys().(syscall.WaitStatus)
@@ -728,12 +762,12 @@ func (n *NGINXController) OnUpdate(ingressCfg ingress.Configuration) error {
 		}
 	}
 
-	err = os.WriteFile(cfgPath, content, file.ReadWriteByUser)
+	err = os.WriteFile(nginxdataplane.CfgPath, content, file.ReadWriteByUser)
 	if err != nil {
 		return err
 	}
 
-	o, err := n.command.ExecCommand("-s", "reload").CombinedOutput()
+	o, err := n.command.Reload()
 	if err != nil {
 		return fmt.Errorf("%v\n%v", err, string(o))
 	}
@@ -1041,7 +1075,7 @@ func createOpentelemetryCfg(cfg *ngx_config.Configuration) error {
 func cleanTempNginxCfg() error {
 	var files []string
 
-	err := filepath.Walk(os.TempDir(), func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(nginxdataplane.TempDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

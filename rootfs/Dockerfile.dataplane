@@ -1,4 +1,4 @@
-# Copyright 2015 The Kubernetes Authors. All rights reserved.
+# Copyright 2024 The Kubernetes Authors. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#ARG BASE_IMAGE
+## This is a temporary file!!
 
-FROM alpine:3.19
+ARG BASE_IMAGE
+
+FROM ${BASE_IMAGE}
 
 ARG TARGETARCH
 ARG VERSION
 ARG COMMIT_SHA
 ARG BUILD_ID=UNSET
 
-LABEL org.opencontainers.image.title="NGINX Ingress Controller for Kubernetes"
+LABEL org.opencontainers.image.title="NGINX Ingress Controller for Kubernetes - Dataplane"
 LABEL org.opencontainers.image.documentation="https://kubernetes.github.io/ingress-nginx/"
 LABEL org.opencontainers.image.source="https://github.com/kubernetes/ingress-nginx"
 LABEL org.opencontainers.image.vendor="The Kubernetes Authors"
@@ -31,19 +33,19 @@ LABEL org.opencontainers.image.revision="${COMMIT_SHA}"
 
 LABEL build_id="${BUILD_ID}"
 
+WORKDIR  /etc/nginx
+
 RUN apk update \
   && apk upgrade \
   && apk add --no-cache \
-    diffutils bash \
-  && rm -rf /var/cache/apk/* \
-  && adduser -S -D -H -u 101 -h /usr/local/nginx \
-  -s /sbin/nologin -G www-data -g www-data www-data
+    diffutils \
+  && rm -rf /var/cache/apk/*
 
-COPY --chown=www-data:www-data etc/nginx/template /etc/nginx/template
+COPY --chown=www-data:www-data etc /etc
 
-COPY --chown=www-data:www-data bin/${TARGETARCH}/dbg /
-COPY --chown=www-data:www-data bin/${TARGETARCH}/nginx-ingress-controller /
-COPY --chown=www-data:www-data bin/${TARGETARCH}/wait-shutdown /
+# COPY --chown=www-data:www-data bin/${TARGETARCH}/dbg /
+COPY --chown=www-data:www-data bin/${TARGETARCH}/nginx-ingress-dataplane /
+# COPY --chown=www-data:www-data bin/${TARGETARCH}/wait-shutdown /
 
 # Fix permission during the build to avoid issues at runtime
 # with volumes (custom templates)
@@ -52,8 +54,11 @@ RUN bash -xeu -c ' \
     /etc/ingress-controller/ssl \
     /etc/ingress-controller/auth \
     /etc/ingress-controller/geoip \
-    /etc/ingress-controller/telemetry \
     /etc/ingress-controller/tempconf \
+    /etc/ingress-controller/telemetry \
+    /etc/nginx/conf \
+    /var/log \
+    /var/log/nginx \
     /tmp/nginx \
   ); \
   for dir in "${writeDirs[@]}"; do \
@@ -67,8 +72,20 @@ RUN bash -xeu -c ' \
   
 
 RUN apk add --no-cache libcap \
-  && setcap    cap_net_bind_service=+ep /nginx-ingress-controller \
-  && setcap -v cap_net_bind_service=+ep /nginx-ingress-controller \
-  && apk del libcap
+  && setcap    cap_net_bind_service=+ep /nginx-ingress-dataplane \
+  && setcap -v cap_net_bind_service=+ep /nginx-ingress-dataplane \
+  && setcap    cap_net_bind_service=+ep /usr/local/nginx/sbin/nginx \
+  && setcap -v cap_net_bind_service=+ep /usr/local/nginx/sbin/nginx \
+  && setcap    cap_net_bind_service=+ep /usr/bin/dumb-init \
+  && setcap -v cap_net_bind_service=+ep /usr/bin/dumb-init \
+  && apk del libcap \
+  && ln -sf /usr/local/nginx/sbin/nginx /usr/bin/nginx
+
 USER www-data
-ENTRYPOINT ["/nginx-ingress-controller"]
+
+# Create symlinks to redirect nginx logs to stdout and stderr docker log collector
+RUN  ln -sf /dev/stdout /var/log/nginx/access.log \
+  && ln -sf /dev/stderr /var/log/nginx/error.log
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/nginx-ingress-dataplane"]

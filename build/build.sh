@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+set -x
 GO_BUILD_CMD="go build"
 
 #if [ -n "$DEBUG" ]; then
@@ -47,6 +47,16 @@ ${GO_BUILD_CMD} \
   -X ${PKG}/version.REPO=${REPO_INFO}" \
   -buildvcs=false \
   -o "${TARGETS_DIR}/nginx-ingress-controller" "${PKG}/cmd/nginx"
+
+echo "Building ${PKG}/cmd/dataplane"
+
+${GO_BUILD_CMD} \
+  -trimpath -ldflags="-buildid= -w -s \
+  -X ${PKG}/version.RELEASE=${TAG} \
+  -X ${PKG}/version.COMMIT=${COMMIT_SHA} \
+  -X ${PKG}/version.REPO=${REPO_INFO}" \
+  -buildvcs=false \
+  -o "${TARGETS_DIR}/nginx-ingress-dataplane" "${PKG}/cmd/dataplane"
 
 echo "Building ${PKG}/cmd/dbg"
 

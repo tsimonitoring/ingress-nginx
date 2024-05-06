@@ -64,7 +64,7 @@ echo "Running e2e with nginx base image ${NGINX_BASE_IMAGE}"
 if [ "${SKIP_CLUSTER_CREATION}" = "false" ]; then
   echo "[dev-env] creating Kubernetes cluster with kind"
 
-  export K8S_VERSION=${K8S_VERSION:-v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f}
+  export K8S_VERSION=${K8S_VERSION:-v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245}
 
   # delete the cluster if it exists
   if kind get clusters | grep "${KIND_CLUSTER_NAME}"; then
@@ -88,7 +88,7 @@ if [ "${SKIP_INGRESS_IMAGE_CREATION}" = "false" ]; then
     make BASE_IMAGE="${NGINX_BASE_IMAGE}" -C "${DIR}"/../../ clean-image build image-chroot
     docker tag ${REGISTRY}/controller-chroot:${TAG} ${REGISTRY}/controller:${TAG}
   else
-    make BASE_IMAGE="${NGINX_BASE_IMAGE}" -C "${DIR}"/../../ clean-image build image
+    make BASE_IMAGE="${NGINX_BASE_IMAGE}" -C "${DIR}"/../../ build image image-dataplane
   fi
 
   echo "[dev-env] .. done building controller images"
@@ -111,6 +111,6 @@ KIND_WORKERS=$(kind get nodes --name="${KIND_CLUSTER_NAME}" | grep worker | awk 
 echo "[dev-env] copying docker images to cluster..."
 
 kind load docker-image --name="${KIND_CLUSTER_NAME}" --nodes="${KIND_WORKERS}" nginx-ingress-controller:e2e
-kind load docker-image --name="${KIND_CLUSTER_NAME}" --nodes="${KIND_WORKERS}" "${REGISTRY}"/controller:"${TAG}"
+kind load docker-image --name="${KIND_CLUSTER_NAME}" --nodes="${KIND_WORKERS}" "${REGISTRY}"/controller:"${TAG}" "${REGISTRY}"/dataplane:"${TAG}"
 echo "[dev-env] running e2e tests..."
 make -C "${DIR}"/../../ e2e-test
