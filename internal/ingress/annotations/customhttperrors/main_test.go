@@ -131,7 +131,7 @@ func TestEnabledByDefault(t *testing.T) {
 		t.Errorf("expected a []int type")
 	}
 
-	expected := []int{}
+	expected := []int{400, 404, 500, 502}
 	if !reflect.DeepEqual(expected, val) {
 		t.Errorf("expected %v but got %v", expected, val)
 	}
