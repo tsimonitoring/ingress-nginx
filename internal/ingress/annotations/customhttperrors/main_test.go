@@ -27,10 +27,9 @@ import (
 	"k8s.io/ingress-nginx/internal/ingress/resolver"
 )
 
-const (
-	DefaultHttpErrorsString = "400,404,500,502"
-	DefaultHttpErrorsSlice = []int{400, 404, 500, 502}
-)
+const DefaultHttpErrorsString = "400,404,500,502"
+
+var DefaultHttpErrorsSlice = []int{400, 404, 500, 502}
 
 func buildIngress() *networking.Ingress {
 	return &networking.Ingress{
