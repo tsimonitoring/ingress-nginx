@@ -27,9 +27,9 @@ import (
 	"k8s.io/ingress-nginx/internal/ingress/resolver"
 )
 
-const DefaultHttpErrorsString = "400,404,500,502"
+const DefaultHTTPErrorsString = "400,404,500,502"
 
-var DefaultHttpErrorsSlice = []int{400, 404, 500, 502}
+var DefaultHTTPErrorsSlice = []int{400, 404, 500, 502}
 
 func buildIngress() *networking.Ingress {
 	return &networking.Ingress{
@@ -54,7 +54,7 @@ func TestParseCodes(t *testing.T) {
 	ing := buildIngress()
 
 	data := map[string]string{}
-	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHttpErrorsString
+	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHTTPErrorsString
 	ing.SetAnnotations(data)
 
 	i, err := NewParser(&resolver.Mock{}).Parse(ing)
@@ -66,7 +66,7 @@ func TestParseCodes(t *testing.T) {
 		t.Errorf("expected a []int type")
 	}
 
-	expected := DefaultHttpErrorsSlice
+	expected := DefaultHTTPErrorsSlice
 	if !reflect.DeepEqual(expected, val) {
 		t.Errorf("expected %v but got %v", expected, val)
 	}
@@ -77,7 +77,7 @@ func TestEnabledSwitch(t *testing.T) {
 
 	data := map[string]string{}
 	data[parser.GetAnnotationWithPrefix("enable-custom-http-errors")] = "true"
-	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHttpErrorsString
+	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHTTPErrorsString
 	ing.SetAnnotations(data)
 
 	i, err := NewParser(&resolver.Mock{}).Parse(ing)
@@ -89,7 +89,7 @@ func TestEnabledSwitch(t *testing.T) {
 		t.Errorf("expected a []int type")
 	}
 
-	expected := DefaultHttpErrorsSlice
+	expected := DefaultHTTPErrorsSlice
 	if !reflect.DeepEqual(expected, val) {
 		t.Errorf("expected %v but got %v", expected, val)
 	}
@@ -100,7 +100,7 @@ func TestDisabledSwitch(t *testing.T) {
 
 	data := map[string]string{}
 	data[parser.GetAnnotationWithPrefix("enable-custom-http-errors")] = "false"
-	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHttpErrorsString
+	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHTTPErrorsString
 	ing.SetAnnotations(data)
 
 	i, err := NewParser(&resolver.Mock{}).Parse(ing)
@@ -123,7 +123,7 @@ func TestEnabledByDefault(t *testing.T) {
 
 	data := map[string]string{}
 	data[parser.GetAnnotationWithPrefix("enable-custom-http-errors")] = "fakebool"
-	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHttpErrorsString
+	data[parser.GetAnnotationWithPrefix("custom-http-errors")] = DefaultHTTPErrorsString
 	ing.SetAnnotations(data)
 
 	i, err := NewParser(&resolver.Mock{}).Parse(ing)
@@ -135,7 +135,7 @@ func TestEnabledByDefault(t *testing.T) {
 		t.Errorf("expected a []int type")
 	}
 
-	expected := DefaultHttpErrorsSlice
+	expected := DefaultHTTPErrorsSlice
 	if !reflect.DeepEqual(expected, val) {
 		t.Errorf("expected %v but got %v", expected, val)
 	}
