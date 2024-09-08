@@ -26,8 +26,8 @@ export NDK_VERSION=0.3.2
 # Check for recent changes: https://github.com/openresty/set-misc-nginx-module/compare/v0.33...master
 export SETMISC_VERSION=0.33
 
-# Check for recent changes: https://github.com/openresty/headers-more-nginx-module/compare/v0.34...master
-export MORE_HEADERS_VERSION=0.34
+# Check for recent changes: https://github.com/openresty/headers-more-nginx-module/compare/v0.37...master
+export MORE_HEADERS_VERSION=0.37
 
 # Check for recent changes: https://github.com/atomx/nginx-http-auth-digest/compare/v1.0.0...atomx:master
 export NGINX_DIGEST_AUTH=1.0.0
@@ -119,9 +119,6 @@ export LUA_RESTY_REDIS_VERSION=0.30
 # Check for recent changes: https://github.com/api7/lua-resty-ipmatcher/compare/v0.6.1...master
 export LUA_RESTY_IPMATCHER_VERSION=0.6.1
 
-# Check for recent changes: https://github.com/ElvinEfendi/lua-resty-global-throttle/compare/v0.2.0...main
-export LUA_RESTY_GLOBAL_THROTTLE_VERSION=0.2.0
-
 # Check for recent changes:  https://github.com/microsoft/mimalloc/compare/v1.7.6...master
 export MIMALOC_VERSION=1.7.6
 
@@ -204,7 +201,7 @@ get_src aa961eafb8317e0eb8da37eb6e2c9ff42267edd18b56947384e719b85188f58b \
 get_src cd5e2cc834bcfa30149e7511f2b5a2183baf0b70dc091af717a89a64e44a2985 \
         "https://github.com/openresty/set-misc-nginx-module/archive/v$SETMISC_VERSION.tar.gz"
 
-get_src 0c0d2ced2ce895b3f45eb2b230cd90508ab2a773299f153de14a43e44c1209b3 \
+get_src cf6e169d6b350c06d0c730b0eaf4973394026ad40094cddd3b3a5b346577019d \
         "https://github.com/openresty/headers-more-nginx-module/archive/v$MORE_HEADERS_VERSION.tar.gz"
 
 get_src f09851e6309560a8ff3e901548405066c83f1f6ff88aa7171e0763bd9514762b \
@@ -308,9 +305,6 @@ get_src c15aed1a01c88a3a6387d9af67a957dff670357f5fdb4ee182beb44635eef3f1 \
 
 get_src efb767487ea3f6031577b9b224467ddbda2ad51a41c5867a47582d4ad85d609e \
         "https://github.com/api7/lua-resty-ipmatcher/archive/v$LUA_RESTY_IPMATCHER_VERSION.tar.gz"
-
-get_src 0fb790e394510e73fdba1492e576aaec0b8ee9ef08e3e821ce253a07719cf7ea \
-        "https://github.com/ElvinEfendi/lua-resty-global-throttle/archive/v$LUA_RESTY_GLOBAL_THROTTLE_VERSION.tar.gz"
 
 get_src d74f86ada2329016068bc5a243268f1f555edd620b6a7d6ce89295e7d6cf18da \
         "https://github.com/microsoft/mimalloc/archive/refs/tags/v${MIMALOC_VERSION}.tar.gz"
@@ -465,10 +459,8 @@ make install
 
 # Get Brotli source and deps
 cd "$BUILD_PATH"
-git clone --depth=100 https://github.com/google/ngx_brotli.git
+git clone --depth=1 https://github.com/google/ngx_brotli.git
 cd ngx_brotli
-# https://github.com/google/ngx_brotli/issues/156
-git reset --hard 63ca02abdcf79c9e788d2eedcc388d2335902e52
 git submodule init
 git submodule update
 
@@ -706,9 +698,6 @@ make install
 cd "$BUILD_PATH/lua-resty-ipmatcher-$LUA_RESTY_IPMATCHER_VERSION"
 INST_LUADIR=/usr/local/lib/lua make install
 
-cd "$BUILD_PATH/lua-resty-global-throttle-$LUA_RESTY_GLOBAL_THROTTLE_VERSION"
-make install
-
 cd "$BUILD_PATH/mimalloc-$MIMALOC_VERSION"
 mkdir -p out/release
 cd out/release
@@ -737,7 +726,7 @@ for dir in "${writeDirs[@]}"; do
 done
 
 rm -rf /etc/nginx/owasp-modsecurity-crs/.git
-rm -rf /etc/nginx/owasp-modsecurity-crs/util/regression-tests
+rm -rf /etc/nginx/owasp-modsecurity-crs/tests
 
 # remove .a files
 find /usr/local -name "*.a" -print | xargs /bin/rm

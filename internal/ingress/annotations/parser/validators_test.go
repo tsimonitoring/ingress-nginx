@@ -56,6 +56,11 @@ func TestValidateArrayOfServerName(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "should allow comma separated query params",
+			value:   "https://oauth.example/oauth2/auth?allowed_groups=gid1,gid2",
+			wantErr: false,
+		},
+		{
 			name:    "should deny names with weird characters",
 			value:   "something.com,lolo;xpto.com,nothing.com",
 			wantErr: true,
@@ -104,7 +109,7 @@ func Test_checkAnnotation(t *testing.T) {
 				},
 				fields: AnnotationFields{
 					"otherannotation": AnnotationConfig{
-						Validator: func(value string) error { return nil },
+						Validator: func(_ string) error { return nil },
 					},
 				},
 			},
