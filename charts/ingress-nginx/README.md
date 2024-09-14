@@ -2,7 +2,7 @@
 
 [ingress-nginx](https://github.com/kubernetes/ingress-nginx) Ingress controller for Kubernetes using NGINX as a reverse proxy and load balancer
 
-![Version: 4.10.0](https://img.shields.io/badge/Version-4.10.0-informational?style=flat-square) ![AppVersion: 1.10.0](https://img.shields.io/badge/AppVersion-1.10.0-informational?style=flat-square)
+![Version: 4.11.2](https://img.shields.io/badge/Version-4.11.2-informational?style=flat-square) ![AppVersion: 1.11.2](https://img.shields.io/badge/AppVersion-1.11.2-informational?style=flat-square)
 
 To use, add `ingressClassName: nginx` spec field or the `kubernetes.io/ingress.class: nginx` annotation to your Ingress resources.
 
@@ -242,7 +242,7 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.admissionWebhooks.certificate | string | `"/usr/local/certificates/cert"` |  |
 | controller.admissionWebhooks.createSecretJob.name | string | `"create"` |  |
 | controller.admissionWebhooks.createSecretJob.resources | object | `{}` |  |
-| controller.admissionWebhooks.createSecretJob.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}}` | Security context for secret creation containers |
+| controller.admissionWebhooks.createSecretJob.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true,"runAsGroup":65532,"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}}` | Security context for secret creation containers |
 | controller.admissionWebhooks.enabled | bool | `true` |  |
 | controller.admissionWebhooks.existingPsp | string | `""` | Use an existing PSP instead of creating one |
 | controller.admissionWebhooks.extraEnvs | list | `[]` | Additional environment variables to set |
@@ -253,21 +253,27 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.admissionWebhooks.namespaceSelector | object | `{}` |  |
 | controller.admissionWebhooks.objectSelector | object | `{}` |  |
 | controller.admissionWebhooks.patch.enabled | bool | `true` |  |
-| controller.admissionWebhooks.patch.image.digest | string | `"sha256:36d05b4077fb8e3d13663702fa337f124675ba8667cbd949c03a8e8ea6fa4366"` |  |
+| controller.admissionWebhooks.patch.image.digest | string | `"sha256:a320a50cc91bd15fd2d6fa6de58bd98c1bd64b9a6f926ce23a600d87043455a3"` |  |
 | controller.admissionWebhooks.patch.image.image | string | `"ingress-nginx/kube-webhook-certgen"` |  |
 | controller.admissionWebhooks.patch.image.pullPolicy | string | `"IfNotPresent"` |  |
 | controller.admissionWebhooks.patch.image.registry | string | `"registry.k8s.io"` |  |
-| controller.admissionWebhooks.patch.image.tag | string | `"v1.4.1"` |  |
+| controller.admissionWebhooks.patch.image.tag | string | `"v1.4.3"` |  |
 | controller.admissionWebhooks.patch.labels | object | `{}` | Labels to be added to patch job resources |
 | controller.admissionWebhooks.patch.networkPolicy.enabled | bool | `false` | Enable 'networkPolicy' or not |
 | controller.admissionWebhooks.patch.nodeSelector."kubernetes.io/os" | string | `"linux"` |  |
 | controller.admissionWebhooks.patch.podAnnotations | object | `{}` |  |
 | controller.admissionWebhooks.patch.priorityClassName | string | `""` | Provide a priority class name to the webhook patching job # |
+| controller.admissionWebhooks.patch.rbac | object | `{"create":true}` | Admission webhook patch job RBAC |
+| controller.admissionWebhooks.patch.rbac.create | bool | `true` | Create RBAC or not |
 | controller.admissionWebhooks.patch.securityContext | object | `{}` | Security context for secret creation & webhook patch pods |
+| controller.admissionWebhooks.patch.serviceAccount | object | `{"automountServiceAccountToken":true,"create":true,"name":""}` | Admission webhook patch job service account |
+| controller.admissionWebhooks.patch.serviceAccount.automountServiceAccountToken | bool | `true` | Auto-mount service account token or not |
+| controller.admissionWebhooks.patch.serviceAccount.create | bool | `true` | Create a service account or not |
+| controller.admissionWebhooks.patch.serviceAccount.name | string | `""` | Custom service account name |
 | controller.admissionWebhooks.patch.tolerations | list | `[]` |  |
 | controller.admissionWebhooks.patchWebhookJob.name | string | `"patch"` |  |
 | controller.admissionWebhooks.patchWebhookJob.resources | object | `{}` |  |
-| controller.admissionWebhooks.patchWebhookJob.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}}` | Security context for webhook patch containers |
+| controller.admissionWebhooks.patchWebhookJob.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true,"runAsGroup":65532,"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}}` | Security context for webhook patch containers |
 | controller.admissionWebhooks.port | int | `8443` |  |
 | controller.admissionWebhooks.service.annotations | object | `{}` |  |
 | controller.admissionWebhooks.service.externalIPs | list | `[]` |  |
@@ -298,7 +304,7 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.dnsPolicy | string | `"ClusterFirst"` | Optionally change this to ClusterFirstWithHostNet in case you have 'hostNetwork: true'. By default, while using host network, name resolution uses the host's DNS. If you wish nginx-controller to keep resolving names inside the k8s network, use ClusterFirstWithHostNet. |
 | controller.electionID | string | `""` | Election ID to use for status update, by default it uses the controller name combined with a suffix of 'leader' |
 | controller.electionTTL | string | `""` | Duration a leader election is valid before it's getting re-elected, e.g. `15s`, `10m` or `1h`. (Default: 30s) |
-| controller.enableAnnotationValidations | bool | `false` |  |
+| controller.enableAnnotationValidations | bool | `true` |  |
 | controller.enableMimalloc | bool | `true` | Enable mimalloc as a drop-in replacement for malloc. # ref: https://github.com/microsoft/mimalloc # |
 | controller.enableTopologyAwareRouting | bool | `false` | This configuration enables Topology Aware Routing feature, used together with service annotation service.kubernetes.io/topology-mode="auto" Defaults to false |
 | controller.existingPsp | string | `""` | Use an existing PSP instead of creating one |
@@ -319,20 +325,22 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.hostname | object | `{}` | Optionally customize the pod hostname. |
 | controller.image.allowPrivilegeEscalation | bool | `false` |  |
 | controller.image.chroot | bool | `false` |  |
-| controller.image.digest | string | `"sha256:42b3f0e5d0846876b1791cd3afeb5f1cbbe4259d6f35651dcc1b5c980925379c"` |  |
-| controller.image.digestChroot | string | `"sha256:7eb46ff733429e0e46892903c7394aff149ac6d284d92b3946f3baf7ff26a096"` |  |
+| controller.image.digest | string | `"sha256:d5f8217feeac4887cb1ed21f27c2674e58be06bd8f5184cacea2a69abaf78dce"` |  |
+| controller.image.digestChroot | string | `"sha256:21b55a2f0213a18b91612a8c0850167e00a8e34391fd595139a708f9c047e7a8"` |  |
 | controller.image.image | string | `"ingress-nginx/controller"` |  |
 | controller.image.pullPolicy | string | `"IfNotPresent"` |  |
 | controller.image.readOnlyRootFilesystem | bool | `false` |  |
 | controller.image.registry | string | `"registry.k8s.io"` |  |
+| controller.image.runAsGroup | int | `82` | This value must not be changed using the official image. uid=101(www-data) gid=82(www-data) groups=82(www-data) |
 | controller.image.runAsNonRoot | bool | `true` |  |
-| controller.image.runAsUser | int | `101` |  |
+| controller.image.runAsUser | int | `101` | This value must not be changed using the official image. uid=101(www-data) gid=82(www-data) groups=82(www-data) |
 | controller.image.seccompProfile.type | string | `"RuntimeDefault"` |  |
-| controller.image.tag | string | `"v1.10.0"` |  |
+| controller.image.tag | string | `"v1.11.2"` |  |
 | controller.ingressClass | string | `"nginx"` | For backwards compatibility with ingress.class annotation, use ingressClass. Algorithm is as follows, first ingressClassName is considered, if not present, controller looks for ingress.class annotation |
 | controller.ingressClassByName | bool | `false` | Process IngressClass per name (additionally as per spec.controller). |
-| controller.ingressClassResource | object | `{"aliases":[],"controllerValue":"k8s.io/ingress-nginx","default":false,"enabled":true,"name":"nginx","parameters":{}}` | This section refers to the creation of the IngressClass resource. IngressClasses are immutable and cannot be changed after creation. We do not support namespaced IngressClasses, yet, so a ClusterRole and a ClusterRoleBinding is required. |
+| controller.ingressClassResource | object | `{"aliases":[],"annotations":{},"controllerValue":"k8s.io/ingress-nginx","default":false,"enabled":true,"name":"nginx","parameters":{}}` | This section refers to the creation of the IngressClass resource. IngressClasses are immutable and cannot be changed after creation. We do not support namespaced IngressClasses, yet, so a ClusterRole and a ClusterRoleBinding is required. |
 | controller.ingressClassResource.aliases | list | `[]` | Aliases of this IngressClass. Creates copies with identical settings but the respective alias as name. Useful for development environments with only one Ingress Controller but production-like Ingress resources. `default` gets enabled on the original IngressClass only. |
+| controller.ingressClassResource.annotations | object | `{}` | Annotations to be added to the IngressClass resource. |
 | controller.ingressClassResource.controllerValue | string | `"k8s.io/ingress-nginx"` | Controller of the IngressClass. An Ingress Controller looks for IngressClasses it should reconcile by this value. This value is also being set as the `--controller-class` argument of this Ingress Controller. Ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class |
 | controller.ingressClassResource.default | bool | `false` | If true, Ingresses without `ingressClassName` get assigned to this IngressClass on creation. Ingress creation gets rejected if there are multiple default IngressClasses. Ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#default-ingress-class |
 | controller.ingressClassResource.enabled | bool | `true` | Create the IngressClass or not |
@@ -359,11 +367,12 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.livenessProbe.periodSeconds | int | `10` |  |
 | controller.livenessProbe.successThreshold | int | `1` |  |
 | controller.livenessProbe.timeoutSeconds | int | `1` |  |
-| controller.maxmindLicenseKey | string | `""` | Maxmind license key to download GeoLite2 Databases. # https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases |
+| controller.maxmindLicenseKey | string | `""` | Maxmind license key to download GeoLite2 Databases. # https://blog.maxmind.com/2019/12/significant-changes-to-accessing-and-using-geolite2-databases/ |
 | controller.metrics.enabled | bool | `false` |  |
 | controller.metrics.port | int | `10254` |  |
 | controller.metrics.portName | string | `"metrics"` |  |
 | controller.metrics.prometheusRule.additionalLabels | object | `{}` |  |
+| controller.metrics.prometheusRule.annotations | object | `{}` | Annotations to be added to the PrometheusRule. |
 | controller.metrics.prometheusRule.enabled | bool | `false` |  |
 | controller.metrics.prometheusRule.rules | list | `[]` |  |
 | controller.metrics.service.annotations | object | `{}` |  |
@@ -373,7 +382,7 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.metrics.service.servicePort | int | `10254` |  |
 | controller.metrics.service.type | string | `"ClusterIP"` |  |
 | controller.metrics.serviceMonitor.additionalLabels | object | `{}` |  |
-| controller.metrics.serviceMonitor.annotations | object | `{}` |  |
+| controller.metrics.serviceMonitor.annotations | object | `{}` | Annotations to be added to the ServiceMonitor. |
 | controller.metrics.serviceMonitor.enabled | bool | `false` |  |
 | controller.metrics.serviceMonitor.metricRelabelings | list | `[]` |  |
 | controller.metrics.serviceMonitor.namespace | string | `""` |  |
@@ -389,15 +398,16 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.opentelemetry.containerSecurityContext.allowPrivilegeEscalation | bool | `false` |  |
 | controller.opentelemetry.containerSecurityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | controller.opentelemetry.containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
+| controller.opentelemetry.containerSecurityContext.runAsGroup | int | `65532` |  |
 | controller.opentelemetry.containerSecurityContext.runAsNonRoot | bool | `true` |  |
 | controller.opentelemetry.containerSecurityContext.runAsUser | int | `65532` | The image's default user, inherited from its base image `cgr.dev/chainguard/static`. |
 | controller.opentelemetry.containerSecurityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | controller.opentelemetry.enabled | bool | `false` |  |
-| controller.opentelemetry.image.digest | string | `"sha256:13bee3f5223883d3ca62fee7309ad02d22ec00ff0d7033e3e9aca7a9f60fd472"` |  |
+| controller.opentelemetry.image.digest | string | `"sha256:f7604ac0547ed64d79b98d92133234e66c2c8aade3c1f4809fed5eec1fb7f922"` |  |
 | controller.opentelemetry.image.distroless | bool | `true` |  |
-| controller.opentelemetry.image.image | string | `"ingress-nginx/opentelemetry"` |  |
+| controller.opentelemetry.image.image | string | `"ingress-nginx/opentelemetry-1.25.3"` |  |
 | controller.opentelemetry.image.registry | string | `"registry.k8s.io"` |  |
-| controller.opentelemetry.image.tag | string | `"v20230721-3e2062ee5"` |  |
+| controller.opentelemetry.image.tag | string | `"v20240813-b933310d"` |  |
 | controller.opentelemetry.name | string | `"opentelemetry"` |  |
 | controller.opentelemetry.resources | object | `{}` |  |
 | controller.podAnnotations | object | `{}` | Annotations to be added to controller pods # |
@@ -478,7 +488,7 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | controller.udp.configMapNamespace | string | `""` | Allows customization of the udp-services-configmap; defaults to $(POD_NAMESPACE) |
 | controller.updateStrategy | object | `{}` | The update strategy to apply to the Deployment or DaemonSet # |
 | controller.watchIngressWithoutClass | bool | `false` | Process Ingress objects without ingressClass annotation/ingressClassName field Overrides value for --watch-ingress-without-class flag of the controller binary Defaults to false |
-| defaultBackend.affinity | object | `{}` |  |
+| defaultBackend.affinity | object | `{}` | Affinity and anti-affinity rules for server scheduling to nodes # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | defaultBackend.autoscaling.annotations | object | `{}` |  |
 | defaultBackend.autoscaling.enabled | bool | `false` |  |
 | defaultBackend.autoscaling.maxReplicas | int | `2` |  |
@@ -498,6 +508,7 @@ As of version `1.26.0` of this chart, by simply not providing any clusterIP valu
 | defaultBackend.image.pullPolicy | string | `"IfNotPresent"` |  |
 | defaultBackend.image.readOnlyRootFilesystem | bool | `true` |  |
 | defaultBackend.image.registry | string | `"registry.k8s.io"` |  |
+| defaultBackend.image.runAsGroup | int | `65534` |  |
 | defaultBackend.image.runAsNonRoot | bool | `true` |  |
 | defaultBackend.image.runAsUser | int | `65534` |  |
 | defaultBackend.image.seccompProfile.type | string | `"RuntimeDefault"` |  |
