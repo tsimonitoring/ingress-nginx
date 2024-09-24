@@ -19,10 +19,13 @@ package crossplane
 import (
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 
 	ngx_crossplane "github.com/nginxinc/nginx-go-crossplane"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"k8s.io/ingress-nginx/internal/ingress/controller/config"
 	"k8s.io/ingress-nginx/pkg/apis/ingress"
 )
 
@@ -156,8 +159,8 @@ func (c *Template) buildServerLocations(server *ingress.Server, locations []*ing
 	}
 
 	for _, location := range locations {
-		_ = buildLocation(location, enforceRegexModifier)
-		//proxySetHeader := getProxySetHeader(location)
+		pathLocation := buildLocation(location, enforceRegexModifier)
+		proxySetHeader := getProxySetHeader(location)
 		authPath := buildAuthLocation(location, cfg.GlobalExternalAuth.URL)
 		applyGlobalAuth := shouldApplyGlobalAuth(location, cfg.GlobalExternalAuth.URL)
 		applyAuthUpstream := shouldApplyAuthUpstream(location, cfg)
@@ -195,9 +198,457 @@ func (c *Template) buildServerLocations(server *ingress.Server, locations []*ing
 			serverLocations = append(serverLocations, buildBlockDirective("location",
 				[]string{buildAuthSignURLLocation(location.Path, externalAuth.SigninURL)}, directives))
 
+			serverLocations = append(serverLocations, c.buildLocation(server, location, pathLocation, proxySetHeader))
 		}
 
 	}
 
 	return serverLocations
+}
+
+func (c *Template) buildLocation(server *ingress.Server,
+	location *ingress.Location, locationPath, proxySetHeader string) *ngx_crossplane.Directive {
+	ing := getIngressInformation(location.Ingress, server.Hostname, location.IngressPath)
+	cfg := c.tplConfig
+	locationDirectives := ngx_crossplane.Directives{
+		buildDirective("set", "$namespace", ing.Namespace),
+		buildDirective("set", "$ingress_name", ing.Rule),
+		buildDirective("set", "$service_name", ing.Service),
+		buildDirective("set", "$service_port", ing.ServicePort),
+		buildDirective("set", "$location_path", strings.ReplaceAll(ing.Path, `$`, `${literal_dollar}`)),
+		buildDirective("rewrite_by_lua_file", "/etc/nginx/lua/nginx/ngx_rewrite.lua"),
+		buildDirective("header_filter_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_srv_hdr_filter.lua"),
+		buildDirective("log_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_log_block.lua"),
+		buildDirective("rewrite_log", location.Logs.Rewrite),
+		buildDirective("http2_push_preload", location.HTTP2PushPreload),
+		buildDirective("port_in_redirect", location.UsePortInRedirects),
+		buildDirective("set", "$balancer_ewma_score", "-1"),
+		buildDirective("set", "$proxy_upstream_name", location.Backend),
+		buildDirective("set", "$proxy_host", "$proxy_upstream_name"),
+		buildDirective("set", "$pass_access_scheme", "$scheme"),
+		buildDirective("set", "$best_http_host", "$http_host"),
+		buildDirective("set", "$pass_port", "$pass_server_port"),
+		buildDirective("set", "$proxy_alternative_upstream_name", ""),
+	}
+
+	locationDirectives = append(locationDirectives, buildCertificateDirectives(location)...)
+
+	if cfg.Cfg.UseProxyProtocol {
+		locationDirectives = append(locationDirectives,
+			buildDirective("set", "$pass_server_port", "$proxy_protocol_server_port"))
+	} else {
+		locationDirectives = append(locationDirectives,
+			buildDirective("set", "$pass_server_port", "$server_port"))
+	}
+
+	locationDirectives = append(locationDirectives,
+		buildOpentelemetryForLocationDirectives(cfg.Cfg.EnableOpentelemetry, cfg.Cfg.OpentelemetryTrustIncomingSpan, location)...)
+
+	if location.Mirror.Source != "" {
+		locationDirectives = append(locationDirectives,
+			buildDirective("mirror", location.Mirror.Source),
+			buildDirective("mirror_request_body", location.Mirror.RequestBody),
+		)
+	}
+
+	locationDirectives = append(locationDirectives, locationConfigForLua(location, *c.tplConfig)...)
+
+	if !location.Logs.Access {
+		locationDirectives = append(locationDirectives,
+			buildDirective("access_log", "off"),
+		)
+	}
+	if location.Denied != nil {
+		locationDirectives = append(locationDirectives, &ngx_crossplane.Directive{})
+		locationDirectives = append(locationDirectives,
+			buildDirectiveWithComment("return", fmt.Sprintf("Location denied. Reason: %s", *location.Denied), "503"))
+	} else {
+		locationDirectives = append(locationDirectives, c.buildAllowedLocation(server, location, proxySetHeader)...)
+	}
+
+	return buildBlockDirective("location", []string{locationPath}, locationDirectives)
+}
+
+func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingress.Location, proxySetHeader string) ngx_crossplane.Directives {
+	dir := make(ngx_crossplane.Directives, 0)
+	for _, ip := range location.Denylist.CIDR {
+		dir = append(dir, buildDirective("deny", ip))
+	}
+	if len(location.Allowlist.CIDR) > 0 {
+		for _, ip := range location.Allowlist.CIDR {
+			dir = append(dir, buildDirective("allow", ip))
+		}
+		dir = append(dir, buildDirective("deny", "all"))
+	}
+
+	if location.CorsConfig.CorsEnabled {
+		dir = append(dir, buildCorsDirectives(location.CorsConfig)...)
+	}
+	// TODO: Implement the build Auth Location
+	dir = append(dir, buildAuthLocationConfig()...)
+
+	dir = append(dir, buildRateLimit(location)...)
+
+	if isValidByteSize(location.Proxy.BodySize, true) {
+		dir = append(dir, buildDirective("cliend_max_body_size", location.Proxy.BodySize))
+	}
+	if isValidByteSize(location.ClientBodyBufferSize, false) {
+		dir = append(dir, buildDirective("client_body_buffer_size", location.ClientBodyBufferSize))
+	}
+
+	if location.UpstreamVhost != "" {
+		dir = append(dir, buildDirective(proxySetHeader, "Host", location.UpstreamVhost))
+	} else {
+		dir = append(dir, buildDirective(proxySetHeader, "Host", "$best_http_host"))
+	}
+
+	if server.CertificateAuth.CAFileName != "" {
+		dir = append(dir,
+			buildDirective(proxySetHeader, "ssl-client-verify", "$ssl_client_verify"),
+			buildDirective(proxySetHeader, "ssl-client-subject-dn", "$ssl_client_s_dn"),
+			buildDirective(proxySetHeader, "ssl-client-issuer-dn", "$ssl_client_i_dn"),
+		)
+
+		if server.CertificateAuth.PassCertToUpstream {
+			dir = append(dir, buildDirective(proxySetHeader, "ssl-client-cert", "$ssl_client_escaped_cert"))
+		}
+	}
+
+	dir = append(dir,
+		buildDirective(proxySetHeader, "Upgrade", "$http_upgrade"),
+		buildDirective(proxySetHeader, "X-Request-ID", "$req_id"),
+		buildDirective(proxySetHeader, "X-Real-IP", "$remote_addr"),
+		buildDirective(proxySetHeader, "X-Forwarded-Host", "$best_http_host"),
+		buildDirective(proxySetHeader, "X-Forwarded-Port", "$pass_port"),
+		buildDirective(proxySetHeader, "X-Forwarded-Proto", "$pass_access_scheme"),
+		buildDirective(proxySetHeader, "X-Forwarded-Scheme", "$pass_access_scheme"),
+		buildDirective(proxySetHeader, "X-Real-IP", "$remote_addr"),
+		buildDirective(proxySetHeader, "X-Scheme", "$pass_access_scheme"),
+		buildDirective(proxySetHeader, "X-Original-Forwarded-For",
+			fmt.Sprintf("$http_%s", strings.ToLower(strings.ReplaceAll(c.tplConfig.Cfg.ForwardedForHeader, "-", "_")))),
+		buildDirectiveWithComment(proxySetHeader,
+			"mitigate HTTProxy Vulnerability - https://www.nginx.com/blog/mitigating-the-httpoxy-vulnerability-with-nginx/", "Proxy", ""),
+	)
+
+	if c.tplConfig.Cfg.UseForwardedHeaders && c.tplConfig.Cfg.ComputeFullForwardedFor {
+		dir = append(dir, buildDirective(proxySetHeader, "X-Forwarded-For", "$full_x_forwarded_for"))
+	} else {
+		dir = append(dir, buildDirective(proxySetHeader, "X-Forwarded-For", "$remote_addr"))
+	}
+
+	if c.tplConfig.Cfg.ProxyAddOriginalURIHeader {
+		dir = append(dir, buildDirective(proxySetHeader, "X-Original-URI", "$request_uri"))
+	}
+
+	if location.Connection.Enabled {
+		dir = append(dir, buildDirective(proxySetHeader, "Connection", location.Connection.Header))
+	} else {
+		dir = append(dir, buildDirective(proxySetHeader, "Connection", "$connection_upgrade"))
+	}
+
+	for k, v := range c.tplConfig.ProxySetHeaders {
+		dir = append(dir, buildDirective(proxySetHeader, k, v))
+	}
+
+	return dir
+}
+
+func buildCertificateDirectives(location *ingress.Location) ngx_crossplane.Directives {
+	cert := make(ngx_crossplane.Directives, 0)
+	if location.ProxySSL.CAFileName != "" {
+		cert = append(cert,
+			buildDirectiveWithComment(
+				"proxy_ssl_trusted_certificate",
+				fmt.Sprintf("#PEM sha: %s", location.ProxySSL.CASHA),
+				location.ProxySSL.CAFileName,
+			),
+			buildDirective("proxy_ssl_ciphers", location.ProxySSL.Ciphers),
+			buildDirective("proxy_ssl_protocols", location.ProxySSL.Protocols),
+			buildDirective("proxy_ssl_verify", location.ProxySSL.Verify),
+			buildDirective("proxy_ssl_verify_depth", location.ProxySSL.VerifyDepth),
+		)
+	}
+	if location.ProxySSL.ProxySSLName != "" {
+		cert = append(cert, buildDirective("proxy_ssl_name", location.ProxySSL.ProxySSLName))
+	}
+	if location.ProxySSL.ProxySSLServerName != "" {
+		cert = append(cert, buildDirective("proxy_ssl_server_name", location.ProxySSL.ProxySSLServerName))
+	}
+	if location.ProxySSL.PemFileName != "" {
+		cert = append(cert,
+			buildDirective("proxy_ssl_certificate", location.ProxySSL.PemFileName),
+			buildDirective("proxy_ssl_certificate_key", location.ProxySSL.PemFileName),
+		)
+	}
+	return cert
+}
+
+type ingressInformation struct {
+	Namespace   string
+	Path        string
+	Rule        string
+	Service     string
+	ServicePort string
+	Annotations map[string]string
+}
+
+func getIngressInformation(ing *ingress.Ingress, hostname, ingressPath string) *ingressInformation {
+	if ing == nil {
+		return &ingressInformation{}
+	}
+
+	info := &ingressInformation{
+		Namespace:   ing.GetNamespace(),
+		Rule:        ing.GetName(),
+		Annotations: ing.Annotations,
+		Path:        ingressPath,
+	}
+
+	if ingressPath == "" {
+		ingressPath = "/"
+		info.Path = "/"
+	}
+
+	if ing.Spec.DefaultBackend != nil && ing.Spec.DefaultBackend.Service != nil {
+		info.Service = ing.Spec.DefaultBackend.Service.Name
+		if ing.Spec.DefaultBackend.Service.Port.Number > 0 {
+			info.ServicePort = strconv.Itoa(int(ing.Spec.DefaultBackend.Service.Port.Number))
+		} else {
+			info.ServicePort = ing.Spec.DefaultBackend.Service.Port.Name
+		}
+	}
+
+	for _, rule := range ing.Spec.Rules {
+		if rule.HTTP == nil {
+			continue
+		}
+
+		if hostname != "_" && rule.Host == "" {
+			continue
+		}
+
+		host := "_"
+		if rule.Host != "" {
+			host = rule.Host
+		}
+
+		if hostname != host {
+			continue
+		}
+
+		for _, rPath := range rule.HTTP.Paths {
+			if ingressPath != rPath.Path {
+				continue
+			}
+
+			if rPath.Backend.Service == nil {
+				continue
+			}
+
+			if info.Service != "" && rPath.Backend.Service.Name == "" {
+				// empty rule. Only contains a Path and PathType
+				return info
+			}
+
+			info.Service = rPath.Backend.Service.Name
+			if rPath.Backend.Service.Port.Number > 0 {
+				info.ServicePort = strconv.Itoa(int(rPath.Backend.Service.Port.Number))
+			} else {
+				info.ServicePort = rPath.Backend.Service.Port.Name
+			}
+
+			return info
+		}
+	}
+
+	return info
+}
+
+func buildOpentelemetryForLocationDirectives(isOTEnabled, isOTTrustSet bool, location *ingress.Location) ngx_crossplane.Directives {
+	isOTEnabledInLoc := location.Opentelemetry.Enabled
+	isOTSetInLoc := location.Opentelemetry.Set
+	directives := make(ngx_crossplane.Directives, 0)
+	if isOTEnabled {
+		if isOTSetInLoc && !isOTEnabledInLoc {
+			return ngx_crossplane.Directives{
+				buildDirective("opentelemetry", "off"),
+			}
+		}
+	} else if !isOTSetInLoc || !isOTEnabledInLoc {
+		return directives
+	}
+
+	if location != nil {
+		directives = append(directives,
+			buildDirective("opentelemetry", "on"),
+			buildDirective("opentelemetry_propagate"),
+		)
+		if location.Opentelemetry.OperationName != "" {
+			directives = append(directives,
+				buildDirective("opentelemetry_operation_name", location.Opentelemetry.OperationName),
+			)
+		}
+
+		if (!isOTTrustSet && !location.Opentelemetry.TrustSet) ||
+			(location.Opentelemetry.TrustSet && !location.Opentelemetry.TrustEnabled) {
+			directives = append(directives,
+				buildDirective("opentelemetry_trust_incoming_spans", "off"),
+			)
+		} else {
+			directives = append(directives,
+				buildDirective("opentelemetry_trust_incoming_spans", "on"),
+			)
+		}
+	}
+
+	return directives
+}
+
+// buildRateLimit produces an array of limit_req to be used inside the Path of
+// Ingress rules. The order: connections by IP first, then RPS, and RPM last.
+func buildRateLimit(loc *ingress.Location) ngx_crossplane.Directives {
+	limits := make(ngx_crossplane.Directives, 0)
+
+	if loc.RateLimit.Connections.Limit > 0 {
+		limits = append(limits, buildDirective("limit_conn", loc.RateLimit.Connections.Name, loc.RateLimit.Connections.Limit))
+	}
+
+	if loc.RateLimit.RPS.Limit > 0 {
+		limits = append(limits,
+			buildDirective(
+				"limit_req",
+				fmt.Sprintf("zone=%s", loc.RateLimit.RPS.Name),
+				fmt.Sprintf("burst=%d", loc.RateLimit.RPS.Burst),
+				"nodelay",
+			),
+		)
+	}
+
+	if loc.RateLimit.RPM.Limit > 0 {
+		limits = append(limits,
+			buildDirective(
+				"limit_req",
+				fmt.Sprintf("zone=%s", loc.RateLimit.RPM.Name),
+				fmt.Sprintf("burst=%d", loc.RateLimit.RPM.Burst),
+				"nodelay",
+			),
+		)
+	}
+
+	if loc.RateLimit.LimitRateAfter > 0 {
+		limits = append(limits,
+			buildDirective(
+				"limit_rate_after",
+				fmt.Sprintf("%dk", loc.RateLimit.LimitRateAfter),
+			),
+		)
+	}
+
+	if loc.RateLimit.LimitRate > 0 {
+		limits = append(limits,
+			buildDirective(
+				"limit_rate",
+				fmt.Sprintf("%dk", loc.RateLimit.LimitRate),
+			),
+		)
+	}
+
+	return limits
+}
+
+// locationConfigForLua formats some location specific configuration into Lua table represented as string
+func locationConfigForLua(location *ingress.Location, all config.TemplateConfig) ngx_crossplane.Directives {
+	/* Lua expects the following vars
+		force_ssl_redirect = string_to_bool(ngx.var.force_ssl_redirect),
+	    ssl_redirect = string_to_bool(ngx.var.ssl_redirect),
+	    force_no_ssl_redirect = string_to_bool(ngx.var.force_no_ssl_redirect),
+	    preserve_trailing_slash = string_to_bool(ngx.var.preserve_trailing_slash),
+	    use_port_in_redirects = string_to_bool(ngx.var.use_port_in_redirects),
+	*/
+
+	return ngx_crossplane.Directives{
+		buildDirective("set", "$force_ssl_redirect", location.Rewrite.ForceSSLRedirect),
+		buildDirective("set", "$ssl_redirect", location.Rewrite.SSLRedirect),
+		buildDirective("set", "$force_no_ssl_redirect", isLocationInLocationList(location, all.Cfg.NoTLSRedirectLocations)),
+		buildDirective("set", "$preserve_trailing_slash", location.Rewrite.PreserveTrailingSlash),
+		buildDirective("set", "$use_port_in_redirects", location.UsePortInRedirects),
+	}
+}
+
+func isLocationInLocationList(loc *ingress.Location, rawLocationList string) bool {
+	locationList := strings.Split(rawLocationList, ",")
+
+	for _, locationListItem := range locationList {
+		locationListItem = strings.Trim(locationListItem, " ")
+		if locationListItem == "" {
+			continue
+		}
+		if strings.HasPrefix(loc.Path, locationListItem) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// TODO
+func buildAuthLocationConfig() ngx_crossplane.Directives {
+	return ngx_crossplane.Directives{}
+	/*
+			            {{ if not (isLocationInLocationList $location $all.Cfg.NoAuthLocations) }} # 2
+		            {{ if $authPath }} # 3
+		            # this location requires authentication
+		            {{ if and (eq $applyAuthUpstream true) (eq $applyGlobalAuth false) }} # 4
+		            set $auth_cookie '';
+		            add_header Set-Cookie $auth_cookie;
+		            {{- range $line := buildAuthResponseHeaders $proxySetHeader $externalAuth.ResponseHeaders true }} # 5
+		            {{ $line }}
+		            {{- end }} # 4
+		            # `auth_request` module does not support HTTP keepalives in upstream block:
+		            # https://trac.nginx.org/nginx/ticket/1579
+		            access_by_lua_block {
+		                local res = ngx.location.capture('{{ $authPath }}', { method = ngx.HTTP_GET, body = '', share_all_vars = {{ $externalAuth.KeepaliveShareVars }} })
+		                if res.status == ngx.HTTP_OK then
+		                    ngx.var.auth_cookie = res.header['Set-Cookie']
+		                    {{- range $line := buildAuthUpstreamLuaHeaders $externalAuth.ResponseHeaders }}
+		                    {{ $line }}
+		                    {{- end }}
+		                    return
+		                end
+		                if res.status == ngx.HTTP_UNAUTHORIZED or res.status == ngx.HTTP_FORBIDDEN then
+		                    ngx.exit(res.status)
+		                end
+		                ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+		            }
+		            {{ else }}
+		            auth_request        {{ $authPath }};
+		            auth_request_set    $auth_cookie $upstream_http_set_cookie;
+		            {{ if $externalAuth.AlwaysSetCookie }} # 5
+		            add_header          Set-Cookie $auth_cookie always;
+		            {{ else }}
+		            add_header          Set-Cookie $auth_cookie;
+		            {{ end }} # 4
+		            {{- range $line := buildAuthResponseHeaders $proxySetHeader $externalAuth.ResponseHeaders false }} # 5
+		            {{ $line }}
+		            {{- end }} # 4
+		            {{ end }} # 3
+		            {{ end }} # 2
+
+		            {{ if $externalAuth.SigninURL }} # 3
+		            set_escape_uri $escaped_request_uri $request_uri;
+		            error_page 401 = {{ buildAuthSignURLLocation $location.Path $externalAuth.SigninURL }};
+		            {{ end }} # 2
+
+		            {{ if $location.BasicDigestAuth.Secured }} # 3
+		            {{ if eq $location.BasicDigestAuth.Type "basic" }} # 4
+		            auth_basic {{ $location.BasicDigestAuth.Realm | quote }};
+		            auth_basic_user_file {{ $location.BasicDigestAuth.File }};
+		            {{ else }}
+		            auth_digest {{ $location.BasicDigestAuth.Realm | quote }};
+		            auth_digest_user_file {{ $location.BasicDigestAuth.File }};
+		            {{ end }} # 3
+		            {{ $proxySetHeader }} Authorization "";
+		            {{ end }} # 2
+		            {{ end }} # 1
+	*/
 }

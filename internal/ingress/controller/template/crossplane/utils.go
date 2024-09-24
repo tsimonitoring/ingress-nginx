@@ -30,6 +30,7 @@ import (
 	ngx_crossplane "github.com/nginxinc/nginx-go-crossplane"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 
 	"k8s.io/ingress-nginx/internal/ingress/annotations/parser"
 	"k8s.io/ingress-nginx/internal/ingress/controller/config"
@@ -57,6 +58,12 @@ var (
 )
 
 type seconds int
+
+func buildDirectiveWithComment(directive string, comment string, args ...any) *ngx_crossplane.Directive {
+	dir := buildDirective(directive, args...)
+	dir.Comment = ptr.To(comment)
+	return dir
+}
 
 func buildDirective(directive string, args ...any) *ngx_crossplane.Directive {
 	argsVal := make([]string, 0)
