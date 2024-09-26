@@ -328,7 +328,21 @@ func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingres
 			fmt.Sprintf("$http_%s", strings.ToLower(strings.ReplaceAll(c.tplConfig.Cfg.ForwardedForHeader, "-", "_")))),
 		buildDirectiveWithComment(proxySetHeader,
 			"mitigate HTTProxy Vulnerability - https://www.nginx.com/blog/mitigating-the-httpoxy-vulnerability-with-nginx/", "Proxy", ""),
+		buildDirective("proxy_connect_timeout", seconds(location.Proxy.ConnectTimeout)),
+		buildDirective("proxy_read_timeout", seconds(location.Proxy.ReadTimeout)),
+		buildDirective("proxy_send_timeout", seconds(location.Proxy.SendTimeout)),
+		buildDirective("proxy_buffering", location.Proxy.ProxyBuffering),
+		buildDirective("proxy_buffer_size", location.Proxy.BufferSize),
+		buildDirective("proxy_buffers", location.Proxy.BuffersNumber, location.Proxy.BufferSize),
+		buildDirective("proxy_request_buffering", location.Proxy.RequestBuffering),
+		buildDirective("proxy_http_version", location.Proxy.ProxyHTTPVersion),
+		buildDirective("proxy_cookie_domain", location.Proxy.CookieDomain),
+		buildDirective("proxy_cookie_path", location.Proxy.CookiePath),
 	)
+
+	if isValidByteSize(location.Proxy.ProxyMaxTempFileSize, true) {
+		dir = append(dir, buildDirective("proxy_max_temp_file_size", location.Proxy.ProxyMaxTempFileSize))
+	}
 
 	if c.tplConfig.Cfg.UseForwardedHeaders && c.tplConfig.Cfg.ComputeFullForwardedFor {
 		dir = append(dir, buildDirective(proxySetHeader, "X-Forwarded-For", "$full_x_forwarded_for"))

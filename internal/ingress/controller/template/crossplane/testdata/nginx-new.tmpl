@@ -1121,21 +1121,21 @@ http {
             {{ $proxySetHeader }} {{ $k }}                    {{ $v | quote }}; # OK
             {{ end }} # 1
 
-            proxy_connect_timeout                   {{ $location.Proxy.ConnectTimeout }}s;
-            proxy_send_timeout                      {{ $location.Proxy.SendTimeout }}s;
-            proxy_read_timeout                      {{ $location.Proxy.ReadTimeout }}s;
+            proxy_connect_timeout                   {{ $location.Proxy.ConnectTimeout }}s; OK
+            proxy_send_timeout                      {{ $location.Proxy.SendTimeout }}s; # OK
+            proxy_read_timeout                      {{ $location.Proxy.ReadTimeout }}s; # OK
 
-            proxy_buffering                         {{ $location.Proxy.ProxyBuffering }};
-            proxy_buffer_size                       {{ $location.Proxy.BufferSize }};
-            proxy_buffers                           {{ $location.Proxy.BuffersNumber }} {{ $location.Proxy.BufferSize }};
+            proxy_buffering                         {{ $location.Proxy.ProxyBuffering }}; # OK
+            proxy_buffer_size                       {{ $location.Proxy.BufferSize }}; # OK
+            proxy_buffers                           {{ $location.Proxy.BuffersNumber }} {{ $location.Proxy.BufferSize }}; # OK
             {{ if isValidByteSize $location.Proxy.ProxyMaxTempFileSize true }}
-            proxy_max_temp_file_size                {{ $location.Proxy.ProxyMaxTempFileSize }};
+            proxy_max_temp_file_size                {{ $location.Proxy.ProxyMaxTempFileSize }}; # OK
             {{ end }}
-            proxy_request_buffering                 {{ $location.Proxy.RequestBuffering }};
-            proxy_http_version                      {{ $location.Proxy.ProxyHTTPVersion }};
+            proxy_request_buffering                 {{ $location.Proxy.RequestBuffering }}; # OK
+            proxy_http_version                      {{ $location.Proxy.ProxyHTTPVersion }}; # OK
 
-            proxy_cookie_domain                     {{ $location.Proxy.CookieDomain }};
-            proxy_cookie_path                       {{ $location.Proxy.CookiePath }};
+            proxy_cookie_domain                     {{ $location.Proxy.CookieDomain }}; # OK
+            proxy_cookie_path                       {{ $location.Proxy.CookiePath }}; # OK
 
             # In case of errors try the next upstream server before returning an error
             proxy_next_upstream                     {{ buildNextUpstream $location.Proxy.NextUpstream $all.Cfg.RetryNonIdempotent }};
