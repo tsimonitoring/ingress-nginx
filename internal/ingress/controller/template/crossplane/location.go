@@ -338,6 +338,9 @@ func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingres
 		buildDirective("proxy_http_version", location.Proxy.ProxyHTTPVersion),
 		buildDirective("proxy_cookie_domain", location.Proxy.CookieDomain),
 		buildDirective("proxy_cookie_path", location.Proxy.CookiePath),
+		buildDirective("proxy_next_upstream_timeout", location.Proxy.NextUpstreamTimeout),
+		buildDirective("proxy_next_upstream_tries", location.Proxy.NextUpstreamTries),
+		buildDirective("proxy_next_upstream", buildNextUpstream(location.Proxy.NextUpstream, c.tplConfig.Cfg.RetryNonIdempotent)),
 	)
 
 	if isValidByteSize(location.Proxy.ProxyMaxTempFileSize, true) {
@@ -362,6 +365,67 @@ func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingres
 
 	for k, v := range c.tplConfig.ProxySetHeaders {
 		dir = append(dir, buildDirective(proxySetHeader, k, v))
+	}
+
+	for k, v := range location.CustomHeaders.Headers {
+		dir = append(dir, buildDirective("more_set_headers", fmt.Sprintf("%s: %s", k, strings.ReplaceAll(v, `$`, `${literal_dollar}`))))
+	}
+
+	if strings.HasPrefix(location.Backend, "custom-default-backend-") {
+		dir = append(dir,
+			buildDirective("proxy_set_header", "X-Code", "503"),
+			buildDirective("proxy_set_header", "X-Format", "$http_accept"),
+			buildDirective("proxy_set_header", "X-Namespace", "$namespace"),
+			buildDirective("proxy_set_header", "X-Ingress-Name", "$ingress_name"),
+			buildDirective("proxy_set_header", "X-Service-Name", "$service_name"),
+			buildDirective("proxy_set_header", "X-Service-Port", "$service_port"),
+			buildDirective("proxy_set_header", "X-Request-ID", "$req_id"),
+		)
+	}
+
+	if location.Satisfy != "" {
+		dir = append(dir, buildDirective("satisfy", location.Satisfy))
+	}
+
+	if len(location.CustomHTTPErrors) > 0 && !location.DisableProxyInterceptErrors {
+		dir = append(dir, buildDirective("proxy_intercept_errors", "on"))
+	}
+
+	for _, errorcode := range location.CustomHTTPErrors {
+		dir = append(dir, buildDirective(
+			"error_page",
+			errorcode, "=",
+			fmt.Sprintf("@custom_%s_%d", location.DefaultBackendUpstreamName, errorcode)),
+		)
+	}
+
+	switch location.BackendProtocol {
+	case "GRPC", "GRPCS":
+		dir = append(dir,
+			buildDirective("grpc_connect_timeout", seconds(location.Proxy.ConnectTimeout)),
+			buildDirective("grpc_send_timeout", seconds(location.Proxy.SendTimeout)),
+			buildDirective("grpc_read_timeout", seconds(location.Proxy.ReadTimeout)),
+		)
+	case "FCGI":
+		dir = append(dir, buildDirective("include", "/etc/nginx/fastcgi_params"))
+		if location.FastCGI.Index != "" {
+			dir = append(dir, buildDirective("fastcgi_index", location.FastCGI.Index))
+		}
+		for k, v := range location.FastCGI.Params {
+			dir = append(dir, buildDirective("fastcgi_param", k, v))
+		}
+	}
+
+	if location.Redirect.URL != "" {
+		dir = append(dir, buildDirective("return", location.Redirect.Code, location.Redirect.URL))
+	}
+
+	dir = append(dir, buildProxyPass(c.tplConfig.Backends, location)...)
+
+	if location.Proxy.ProxyRedirectFrom == "default" || location.Proxy.ProxyRedirectFrom == "off" {
+		dir = append(dir, buildDirective("proxy_redirect", location.Proxy.ProxyRedirectFrom))
+	} else if location.Proxy.ProxyRedirectTo != "off" {
+		dir = append(dir, buildDirective("proxy_redirect", location.Proxy.ProxyRedirectFrom, location.Proxy.ProxyRedirectTo))
 	}
 
 	return dir

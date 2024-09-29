@@ -102,7 +102,8 @@ func TestCrossplaneTemplate(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, mimeFile.Close())
 
-	tpl := crossplane.NewTemplate()
+	tpl, err := crossplane.NewTemplate()
+	require.NoError(t, err)
 
 	t.Run("it should be able to marshall and unmarshall the default configuration", func(t *testing.T) {
 		tplConfig := defaultConfig()
@@ -190,10 +191,12 @@ func TestCrossplaneTemplate(t *testing.T) {
 						Backend:              "somebackend",
 						ClientBodyBufferSize: "512k",
 						Proxy: proxy.Config{
+							ProxyBuffering:   "on",
 							RequestBuffering: "on",
 							BuffersNumber:    10,
 							BufferSize:       "1024k",
 							ProxyHTTPVersion: "1.1",
+							NextUpstream:     "10.10.10.10",
 						},
 						ExternalAuth: authreq.Config{
 							AuthCacheDuration: []string{"60s"},
@@ -334,7 +337,9 @@ func TestCrossplaneTemplate(t *testing.T) {
 		tplConfig.Cfg.UpstreamKeepaliveTimeout = 200
 		tplConfig.Cfg.UpstreamKeepaliveRequests = 15
 
-		tpl = crossplane.NewTemplate()
+		tpl, err = crossplane.NewTemplate()
+		require.NoError(t, err)
+
 		tpl.SetMimeFile(mimeFile.Name())
 		content, err := tpl.Write(tplConfig)
 		require.NoError(t, err)

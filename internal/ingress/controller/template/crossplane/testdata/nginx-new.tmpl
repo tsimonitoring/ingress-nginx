@@ -252,7 +252,7 @@ http {
 
     {{ if and (ne $cfg.HTTP2MaxHeaderSize "") (ne $cfg.HTTP2MaxFieldSize "") }} # OK
     http2_max_field_size            {{ $cfg.HTTP2MaxFieldSize }}; # OK
-    http2_max_header_size           {{ $cfg.HTTP2MaxHeaderSize }}; #  OK
+    http2_max_header_size           {{ $cfg.HTTP2MaxHeaderSize }}; # OK
     {{ end }}
 
     {{ if (gt $cfg.HTTP2MaxRequests 0) }} # OK
@@ -967,7 +967,7 @@ http {
             http2_push_preload on; # OK
             {{ end }}
 
-            port_in_redirect {{ if $location.UsePortInRedirects }}on{{ else }}off{{ end }};
+            port_in_redirect {{ if $location.UsePortInRedirects }}on{{ else }}off{{ end }}; # OK
 
             set $balancer_ewma_score -1; # OK
             set $proxy_upstream_name {{ buildUpstreamName $location | quote }}; # OK
@@ -1138,68 +1138,68 @@ http {
             proxy_cookie_path                       {{ $location.Proxy.CookiePath }}; # OK
 
             # In case of errors try the next upstream server before returning an error
-            proxy_next_upstream                     {{ buildNextUpstream $location.Proxy.NextUpstream $all.Cfg.RetryNonIdempotent }};
-            proxy_next_upstream_timeout             {{ $location.Proxy.NextUpstreamTimeout }};
-            proxy_next_upstream_tries               {{ $location.Proxy.NextUpstreamTries }};
+            proxy_next_upstream                     {{ buildNextUpstream $location.Proxy.NextUpstream $all.Cfg.RetryNonIdempotent }}; # OK
+            proxy_next_upstream_timeout             {{ $location.Proxy.NextUpstreamTimeout }}; # OK
+            proxy_next_upstream_tries               {{ $location.Proxy.NextUpstreamTries }}; # OK
 
             {{ if or (eq $location.BackendProtocol "GRPC") (eq $location.BackendProtocol "GRPCS") }}
             # Grpc settings
-            grpc_connect_timeout                    {{ $location.Proxy.ConnectTimeout }}s;
-            grpc_send_timeout                       {{ $location.Proxy.SendTimeout }}s;
-            grpc_read_timeout                       {{ $location.Proxy.ReadTimeout }}s;
+            grpc_connect_timeout                    {{ $location.Proxy.ConnectTimeout }}s; # OK
+            grpc_send_timeout                       {{ $location.Proxy.SendTimeout }}s; # OK
+            grpc_read_timeout                       {{ $location.Proxy.ReadTimeout }}s; # OK
             {{ end }} # 1
 
  
             {{ if $location.CustomHeaders }} # 2
             # Custom Response Headers
             {{ range $k, $v := $location.CustomHeaders.Headers }} # 3
-            more_set_headers {{ printf "%s: %s" $k $v | escapeLiteralDollar | quote }};
+            more_set_headers {{ printf "%s: %s" $k $v | escapeLiteralDollar | quote }}; # OK
             {{ end }} # 2
             {{ end }} # 1
 
             {{/* if we are sending the request to a custom default backend, we add the required headers */}}
             {{ if (hasPrefix $location.Backend "custom-default-backend-") }}
-            proxy_set_header       X-Code             503;
-            proxy_set_header       X-Format           $http_accept;
-            proxy_set_header       X-Namespace        $namespace;
-            proxy_set_header       X-Ingress-Name     $ingress_name;
-            proxy_set_header       X-Service-Name     $service_name;
-            proxy_set_header       X-Service-Port     $service_port;
-            proxy_set_header       X-Request-ID       $req_id;
+            proxy_set_header       X-Code             503; # OK
+            proxy_set_header       X-Format           $http_accept; # OK
+            proxy_set_header       X-Namespace        $namespace; # OK
+            proxy_set_header       X-Ingress-Name     $ingress_name; # OK
+            proxy_set_header       X-Service-Name     $service_name; # OK
+            proxy_set_header       X-Service-Port     $service_port; # OK
+            proxy_set_header       X-Request-ID       $req_id; # OK
             {{ end }} # 1
 
             {{ if $location.Satisfy }}
-            satisfy {{ $location.Satisfy }};
+            satisfy {{ $location.Satisfy }}; # OK
             {{ end }} # 1
 
             {{/* if a location-specific error override is set, add the proxy_intercept here */}}
             {{ if and $location.CustomHTTPErrors (not $location.DisableProxyInterceptErrors) }}
             # Custom error pages per ingress
-            proxy_intercept_errors on;
+            proxy_intercept_errors on; # OK
             {{ end }} # 1
 
             {{ range $errCode := $location.CustomHTTPErrors }}
-            error_page {{ $errCode }} = @custom_{{ $location.DefaultBackendUpstreamName }}_{{ $errCode }};{{ end }}
+            error_page {{ $errCode }} = @custom_{{ $location.DefaultBackendUpstreamName }}_{{ $errCode }};{{ end }} # OK
 
             {{ if (eq $location.BackendProtocol "FCGI") }}
-            include /etc/nginx/fastcgi_params;
+            include /etc/nginx/fastcgi_params; OK 
             {{ end }} # 1
             {{- if $location.FastCGI.Index -}}
-            fastcgi_index {{ $location.FastCGI.Index | quote }};
+            fastcgi_index {{ $location.FastCGI.Index | quote }}; # OK
             {{- end -}} # 1
             {{ range $k, $v := $location.FastCGI.Params }}
-            fastcgi_param {{ $k }} {{ $v | quote }};
+            fastcgi_param {{ $k }} {{ $v | quote }}; # OK
             {{ end }} # 1
 
             {{ if not (empty $location.Redirect.URL) }}
-            return {{ $location.Redirect.Code }} {{ $location.Redirect.URL }};
+            return {{ $location.Redirect.Code }} {{ $location.Redirect.URL }}; # OK
             {{ end }} # 1
 
-            {{ buildProxyPass $server.Hostname $all.Backends $location }}
+            {{ buildProxyPass $server.Hostname $all.Backends $location }} # OK
             {{ if (or (eq $location.Proxy.ProxyRedirectFrom "default") (eq $location.Proxy.ProxyRedirectFrom "off")) }}
-            proxy_redirect                          {{ $location.Proxy.ProxyRedirectFrom }};
-            {{ else if not (eq $location.Proxy.ProxyRedirectTo "off") }}
-            proxy_redirect                          {{ $location.Proxy.ProxyRedirectFrom }} {{ $location.Proxy.ProxyRedirectTo }};
+            proxy_redirect                          {{ $location.Proxy.ProxyRedirectFrom }}; # OK 
+            {{ else if not (eq $location.Proxy.ProxyRedirectTo "off") }} 
+            proxy_redirect                          {{ $location.Proxy.ProxyRedirectFrom }} {{ $location.Proxy.ProxyRedirectTo }}; # OK
             {{ end }} # 1
             {{ else }}
             # Location denied. Reason: {{ $location.Denied | quote }} # OK
@@ -1231,14 +1231,14 @@ http {
 
         {{ if eq $server.Hostname "_" }}
         # health checks in cloud providers require the use of port {{ $all.ListenPorts.HTTP }}
-        location {{ $all.HealthzURI }} {
+        location {{ $all.HealthzURI }} { # OK
 
             {{ if $all.Cfg.EnableOpentelemetry }}
-            opentelemetry off;
+            opentelemetry off; # OK
             {{ end }}
 
-            access_log off;
-            return 200;
+            access_log off; # OK
+            return 200; # OK
         }
 
         # this is required to avoid error if nginx is being monitored
@@ -1246,21 +1246,21 @@ http {
         location /nginx_status {
 
             {{ if $all.Cfg.EnableOpentelemetry }}
-            opentelemetry off;
+            opentelemetry off; # OK
             {{ end }}
 
             {{ range $v := $all.NginxStatusIpv4Whitelist }}
-            allow {{ $v }};
+            allow {{ $v }}; # OK
             {{ end }}
             {{ if $all.IsIPV6Enabled -}}
             {{ range $v := $all.NginxStatusIpv6Whitelist }}
-            allow {{ $v }};
+            allow {{ $v }}; # OK
             {{ end }}
             {{ end -}}
-            deny all;
+            deny all; # OK
 
-            access_log off;
-            stub_status on;
+            access_log off; # OK
+            stub_status on; # OK
         }
 
         {{ end }}

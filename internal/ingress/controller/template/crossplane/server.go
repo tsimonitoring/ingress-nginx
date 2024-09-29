@@ -52,23 +52,56 @@ func (c *Template) buildServerDirective(server *ingress.Server) *ngx_crossplane.
 			})
 		serverBlock = append(serverBlock, matchCNBlock)
 	}
-	// TODO: This part should be reserved to SSL Configurations
 
-	/* MISSING (I don't know where this if ends...)
-	   {{ if not (empty $server.AuthTLSError) }}
-	   # {{ $server.AuthTLSError }}
-	   return 403;
-	   {{ else }}
-	*/
-	serverBlock = append(serverBlock, c.buildCertificateDirectives(server)...)
-	// END
+	if server.AuthTLSError != "" {
+		serverBlock = append(serverBlock, buildDirective("return", 403))
+	} else {
 
-	serverBlock = append(serverBlock, buildCustomErrorLocationsPerServer(server, c.tplConfig.EnableMetrics)...)
+		serverBlock = append(serverBlock, c.buildCertificateDirectives(server)...)
+		serverBlock = append(serverBlock, buildCustomErrorLocationsPerServer(server, c.tplConfig.EnableMetrics)...)
+		serverBlock = append(serverBlock, buildMirrorLocationDirective(server.Locations)...)
 
-	serverBlock = append(serverBlock, buildMirrorLocationDirective(server.Locations)...)
+		// The other locations should come here!
+		serverBlock = append(serverBlock, c.buildServerLocations(server, server.Locations)...)
 
-	// The other locations should come here!
-	serverBlock = append(serverBlock, c.buildServerLocations(server, server.Locations)...)
+	}
+
+	// "/healthz" location
+	if server.Hostname == "_" {
+		dirs := ngx_crossplane.Directives{
+			buildDirective("access_log", "off"),
+			buildDirective("return", "200"),
+		}
+		if cfg.EnableOpentelemetry {
+			dirs = append(dirs, buildDirective("opentelemetry", "off"))
+		}
+		healthLocation := buildBlockDirective("location",
+			[]string{c.tplConfig.HealthzURI}, dirs)
+		serverBlock = append(serverBlock, healthLocation)
+	}
+
+	// "/nginx_status" location
+	statusLocationDirs := ngx_crossplane.Directives{}
+	if cfg.EnableOpentelemetry {
+		statusLocationDirs = append(statusLocationDirs, buildDirective("opentelemetry", "off"))
+	}
+
+	for _, v := range c.tplConfig.NginxStatusIpv4Whitelist {
+		statusLocationDirs = append(statusLocationDirs, buildDirective("allow", v))
+	}
+
+	if c.tplConfig.IsIPV6Enabled {
+		for _, v := range c.tplConfig.NginxStatusIpv6Whitelist {
+			statusLocationDirs = append(statusLocationDirs, buildDirective("allow", v))
+		}
+	}
+	statusLocationDirs = append(statusLocationDirs,
+		buildDirective("deny", "all"),
+		buildDirective("access_log", "off"),
+		buildDirective("stub_status", "on"))
+
+	serverBlock = append(serverBlock, buildBlockDirective("location", []string{"/nginx_status"}, statusLocationDirs))
+	// End of "nginx_status" location
 
 	// DO NOT MOVE! THIS IS THE END DIRECTIVE OF SERVERS
 	serverBlock = append(serverBlock, buildCustomErrorLocation("upstream-default-backend", cfg.CustomHTTPErrors, c.tplConfig.EnableMetrics)...)

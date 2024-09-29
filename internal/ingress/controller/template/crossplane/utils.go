@@ -437,3 +437,98 @@ func buildOriginRegex(origin string) string {
 	origin = strings.Replace(origin, "\\*", `[A-Za-z0-9\-]+`, 1)
 	return fmt.Sprintf("(%s)", origin)
 }
+
+func buildNextUpstream(nextUpstream string, retryNonIdempotent bool) []string {
+	parts := strings.Split(nextUpstream, " ")
+
+	nextUpstreamCodes := make([]string, 0, len(parts))
+	for _, v := range parts {
+		if v != "" && v != nonIdempotent {
+			nextUpstreamCodes = append(nextUpstreamCodes, v)
+		}
+
+		if v == nonIdempotent {
+			retryNonIdempotent = true
+		}
+	}
+
+	if retryNonIdempotent {
+		nextUpstreamCodes = append(nextUpstreamCodes, nonIdempotent)
+	}
+
+	return nextUpstreamCodes
+}
+
+func buildProxyPass(backends []*ingress.Backend, location *ingress.Location) ngx_crossplane.Directives {
+	path := location.Path
+	proto := "http://"
+	proxyPass := "proxy_pass"
+
+	switch strings.ToUpper(location.BackendProtocol) {
+	case autoHTTPProtocol:
+		proto = "$scheme://"
+	case httpsProtocol:
+		proto = "https://"
+	case grpcProtocol:
+		proto = "grpc://"
+		proxyPass = "grpc_pass"
+	case grpcsProtocol:
+		proto = "grpcs://"
+		proxyPass = "grpc_pass"
+	case fcgiProtocol:
+		proto = ""
+		proxyPass = "fastcgi_pass"
+	}
+
+	upstreamName := "upstream_balancer"
+
+	for _, backend := range backends {
+		if backend.Name == location.Backend {
+			if backend.SSLPassthrough {
+				proto = "https://"
+
+				if location.BackendProtocol == grpcsProtocol {
+					proto = "grpcs://"
+				}
+			}
+
+			break
+		}
+	}
+
+	if location.Backend == "upstream-default-backend" {
+		proto = "http://"
+		proxyPass = "proxy_pass"
+	}
+
+	// defProxyPass returns the default proxy_pass, just the name of the upstream
+	defProxyPass := buildDirective(proxyPass, fmt.Sprintf("%s%s", proto, upstreamName))
+
+	// if the path in the ingress rule is equals to the target: no special rewrite
+	if path == location.Rewrite.Target {
+		return ngx_crossplane.Directives{defProxyPass}
+	}
+
+	if location.Rewrite.Target != "" {
+		proxySetHeader := "proxy_set_header"
+		dir := make(ngx_crossplane.Directives, 0)
+		if location.BackendProtocol == grpcProtocol || location.BackendProtocol == grpcsProtocol {
+			proxySetHeader = "grpc_set_header"
+		}
+
+		if location.XForwardedPrefix != "" {
+			dir = append(dir,
+				buildDirective(proxySetHeader, "X-Forwarded-Prefix", location.XForwardedPrefix),
+			)
+		}
+
+		dir = append(dir,
+			buildDirective("rewrite", fmt.Sprintf("(?i)%s", path), location.Rewrite.Target, "break"),
+			buildDirective(proxyPass, fmt.Sprintf("%s%s", proto, upstreamName)),
+		)
+		return dir
+	}
+
+	// default proxy_pass
+	return ngx_crossplane.Directives{defProxyPass}
+}
