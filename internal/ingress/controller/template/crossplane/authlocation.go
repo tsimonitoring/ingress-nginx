@@ -18,6 +18,7 @@ package crossplane
 
 import (
 	"fmt"
+	"strings"
 
 	ngx_crossplane "github.com/nginxinc/nginx-go-crossplane"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/authreq"
@@ -96,7 +97,7 @@ func (c *Template) buildAuthLocation(server *ingress.Server,
 		)
 		for i := range externalA.AuthCacheDuration {
 			locationDirectives = append(locationDirectives,
-				buildDirective("proxy_cache_valid", externalA.AuthCacheDuration[i]),
+				buildDirective("proxy_cache_valid", strings.Split(externalA.AuthCacheDuration[i], " ")),
 			)
 		}
 	}

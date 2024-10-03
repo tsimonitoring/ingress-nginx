@@ -198,8 +198,8 @@ func (c *Template) buildServerLocations(server *ingress.Server, locations []*ing
 			serverLocations = append(serverLocations, buildBlockDirective("location",
 				[]string{buildAuthSignURLLocation(location.Path, externalAuth.SigninURL)}, directives))
 
-			serverLocations = append(serverLocations, c.buildLocation(server, location, pathLocation, proxySetHeader))
 		}
+		serverLocations = append(serverLocations, c.buildLocation(server, location, pathLocation, proxySetHeader))
 
 	}
 
@@ -215,13 +215,6 @@ func (c *Template) buildLocation(server *ingress.Server,
 		buildDirective("set", "$ingress_name", ing.Rule),
 		buildDirective("set", "$service_name", ing.Service),
 		buildDirective("set", "$service_port", ing.ServicePort),
-		buildDirective("set", "$location_path", strings.ReplaceAll(ing.Path, `$`, `${literal_dollar}`)),
-		buildDirective("rewrite_by_lua_file", "/etc/nginx/lua/nginx/ngx_rewrite.lua"),
-		buildDirective("header_filter_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_srv_hdr_filter.lua"),
-		buildDirective("log_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_log_block.lua"),
-		buildDirective("rewrite_log", location.Logs.Rewrite),
-		buildDirective("http2_push_preload", location.HTTP2PushPreload),
-		buildDirective("port_in_redirect", location.UsePortInRedirects),
 		buildDirective("set", "$balancer_ewma_score", "-1"),
 		buildDirective("set", "$proxy_upstream_name", location.Backend),
 		buildDirective("set", "$proxy_host", "$proxy_upstream_name"),
@@ -229,6 +222,13 @@ func (c *Template) buildLocation(server *ingress.Server,
 		buildDirective("set", "$best_http_host", "$http_host"),
 		buildDirective("set", "$pass_port", "$pass_server_port"),
 		buildDirective("set", "$proxy_alternative_upstream_name", ""),
+		buildDirective("set", "$location_path", strings.ReplaceAll(ing.Path, `$`, `${literal_dollar}`)),
+		buildDirective("rewrite_by_lua_file", "/etc/nginx/lua/nginx/ngx_rewrite.lua"),
+		buildDirective("header_filter_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_srv_hdr_filter.lua"),
+		buildDirective("log_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_log_block.lua"),
+		buildDirective("rewrite_log", location.Logs.Rewrite),
+		buildDirective("http2_push_preload", location.HTTP2PushPreload),
+		buildDirective("port_in_redirect", location.UsePortInRedirects),
 	}
 
 	locationDirectives = append(locationDirectives, buildCertificateDirectives(location)...)
@@ -290,7 +290,7 @@ func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingres
 	dir = append(dir, buildRateLimit(location)...)
 
 	if isValidByteSize(location.Proxy.BodySize, true) {
-		dir = append(dir, buildDirective("cliend_max_body_size", location.Proxy.BodySize))
+		dir = append(dir, buildDirective("client_max_body_size", location.Proxy.BodySize))
 	}
 	if isValidByteSize(location.ClientBodyBufferSize, false) {
 		dir = append(dir, buildDirective("client_body_buffer_size", location.ClientBodyBufferSize))

@@ -702,7 +702,7 @@ func (n *NGINXController) OnUpdate(ingressCfg ingress.Configuration) error {
 
 	err = n.testTemplate(content)
 	if err != nil {
-		return err
+		return fmt.Errorf("err %s content %s", err, string(content))
 	}
 
 	if klog.V(2).Enabled() {
@@ -870,13 +870,14 @@ func (n *NGINXController) configureDynamically(pcfg *ingress.Configuration) erro
 		}
 	}
 
-	streamConfigurationChanged := !reflect.DeepEqual(n.runningConfig.TCPEndpoints, pcfg.TCPEndpoints) || !reflect.DeepEqual(n.runningConfig.UDPEndpoints, pcfg.UDPEndpoints)
+	// TODO: (ricardo) - Disable in case this is crossplane, we don't support stream on this mode
+	/*streamConfigurationChanged := !reflect.DeepEqual(n.runningConfig.TCPEndpoints, pcfg.TCPEndpoints) || !reflect.DeepEqual(n.runningConfig.UDPEndpoints, pcfg.UDPEndpoints)
 	if streamConfigurationChanged {
 		err := updateStreamConfiguration(pcfg.TCPEndpoints, pcfg.UDPEndpoints)
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 
 	serversChanged := !reflect.DeepEqual(n.runningConfig.Servers, pcfg.Servers)
 	if serversChanged {
