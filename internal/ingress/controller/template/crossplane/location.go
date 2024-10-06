@@ -207,7 +207,7 @@ func (c *Template) buildServerLocations(server *ingress.Server, locations []*ing
 }
 
 func (c *Template) buildLocation(server *ingress.Server,
-	location *ingress.Location, locationPath, proxySetHeader string) *ngx_crossplane.Directive {
+	location *ingress.Location, locationPath []string, proxySetHeader string) *ngx_crossplane.Directive {
 	ing := getIngressInformation(location.Ingress, server.Hostname, location.IngressPath)
 	cfg := c.tplConfig
 	locationDirectives := ngx_crossplane.Directives{
@@ -266,7 +266,7 @@ func (c *Template) buildLocation(server *ingress.Server,
 		locationDirectives = append(locationDirectives, c.buildAllowedLocation(server, location, proxySetHeader)...)
 	}
 
-	return buildBlockDirective("location", []string{locationPath}, locationDirectives)
+	return buildBlockDirective("location", locationPath, locationDirectives)
 }
 
 func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingress.Location, proxySetHeader string) ngx_crossplane.Directives {

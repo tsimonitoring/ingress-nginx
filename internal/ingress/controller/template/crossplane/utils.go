@@ -65,6 +65,14 @@ func buildDirectiveWithComment(directive string, comment string, args ...any) *n
 	return dir
 }
 
+func buildStartServer(name string) *ngx_crossplane.Directive {
+	return buildDirective("##", "start", "server", name)
+}
+
+func buildEndServer(name string) *ngx_crossplane.Directive {
+	return buildDirective("##", "end", "server", name)
+}
+
 func buildDirective(directive string, args ...any) *ngx_crossplane.Directive {
 	argsVal := make([]string, 0)
 	for k := range args {
@@ -278,17 +286,17 @@ func luaConfigurationRequestBodySize(cfg config.Configuration) string {
 	return dictKbToStr(size)
 }
 
-func buildLocation(location *ingress.Location, enforceRegex bool) string {
+func buildLocation(location *ingress.Location, enforceRegex bool) []string {
 	path := location.Path
 	if enforceRegex {
-		return fmt.Sprintf(`~* "^%s"`, path)
+		return []string{"~*", fmt.Sprintf("^%s", path)}
 	}
 
 	if location.PathType != nil && *location.PathType == networkingv1.PathTypeExact {
-		return fmt.Sprintf(`= %s`, path)
+		return []string{"=", path}
 	}
 
-	return path
+	return []string{path}
 }
 
 func getProxySetHeader(location *ingress.Location) string {

@@ -80,6 +80,7 @@ func (c *Template) Write(conf *config.TemplateConfig) ([]byte, error) {
 
 	lua := ngx_crossplane.Lua{}
 	options := ngx_crossplane.ParseOptions{
+		ParseComments:            true,
 		ErrorOnUnknownDirectives: true,
 		StopParsingOnError:       true,
 		IgnoreDirectives: []string{"more_clear_headers",

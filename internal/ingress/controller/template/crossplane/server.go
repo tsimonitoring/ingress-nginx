@@ -165,6 +165,7 @@ func (c *Template) buildRedirectServer(server *utilingress.Redirect) *ngx_crossp
 	serverBlock = append(serverBlock, buildListener(*c.tplConfig, server.From)...)
 	serverBlock = append(serverBlock, c.buildBlockers()...)
 	serverBlock = append(serverBlock, buildDirective("return", c.tplConfig.Cfg.HTTPRedirectCode, "$redirect_to"))
+
 	return &ngx_crossplane.Directive{
 		Directive: "server",
 		Block:     serverBlock,

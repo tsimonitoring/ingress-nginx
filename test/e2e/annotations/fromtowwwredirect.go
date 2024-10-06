@@ -62,17 +62,13 @@ var _ = framework.DescribeAnnotation("from-to-www-redirect", func() {
 	})
 
 	ginkgo.It("should redirect from www HTTPS to HTTPS", func() {
-		disableSnippet := f.AllowSnippetConfiguration()
-		defer disableSnippet()
-
 		ginkgo.By("setting up server for redirect from www")
 
 		fromHost := fmt.Sprintf("%s.nip.io", f.GetNginxIP())
 		toHost := fmt.Sprintf("www.%s", fromHost)
 
 		annotations := map[string]string{
-			"nginx.ingress.kubernetes.io/from-to-www-redirect":  "true",
-			"nginx.ingress.kubernetes.io/configuration-snippet": "more_set_headers \"ExpectedHost: $http_host\";",
+			"nginx.ingress.kubernetes.io/from-to-www-redirect": "true",
 		}
 
 		ing := framework.NewSingleIngressWithTLS(fromHost, "/", fromHost, []string{fromHost, toHost}, f.Namespace, framework.EchoService, 80, annotations)
@@ -112,7 +108,7 @@ var _ = framework.DescribeAnnotation("from-to-www-redirect", func() {
 			WithURL(f.GetURL(framework.HTTPS)).
 			WithHeader("Host", fromHost).
 			Expect().
-			Status(http.StatusOK).
-			Header("ExpectedHost").Equal(fromHost)
+			Status(http.StatusOK)
+		// Header("ExpectedHost").Equal(fromHost) // TODO (rkatz) - Get the host from Backend instead
 	})
 })

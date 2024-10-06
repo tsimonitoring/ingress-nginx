@@ -313,14 +313,18 @@ func (c *Template) buildHTTP() {
 
 	if redirectServers, ok := c.tplConfig.RedirectServers.([]*utilingress.Redirect); ok {
 		for _, server := range redirectServers {
+			httpBlock = append(httpBlock, buildStartServer(server.From))
 			serverBlock := c.buildRedirectServer(server)
 			httpBlock = append(httpBlock, serverBlock)
+			httpBlock = append(httpBlock, buildEndServer(server.From))
 		}
 	}
 
 	for _, server := range c.tplConfig.Servers {
+		httpBlock = append(httpBlock, buildStartServer(server.Hostname))
 		serverBlock := c.buildServerDirective(server)
 		httpBlock = append(httpBlock, serverBlock)
+		httpBlock = append(httpBlock, buildEndServer(server.Hostname))
 	}
 
 	httpBlock = append(httpBlock, c.buildDefaultBackend())

@@ -78,6 +78,7 @@ var resolvers = []net.IP{net.ParseIP("::1"), net.ParseIP("192.168.20.10")}
 func TestCrossplaneTemplate(t *testing.T) {
 	lua := ngx_crossplane.Lua{}
 	options := ngx_crossplane.ParseOptions{
+		ParseComments:            true,
 		ErrorOnUnknownDirectives: true,
 		StopParsingOnError:       true,
 		IgnoreDirectives: []string{"more_clear_headers",
@@ -165,9 +166,10 @@ func TestCrossplaneTemplate(t *testing.T) {
 				Locations: []*ingress.Location{
 					{
 						Mirror: mirror.Config{
-							Source: "/mirror",
-							Host:   "something.com",
-							Target: "http://www.mymirror.com",
+							Source:      "/mirror",
+							Host:        "something.com",
+							Target:      "http://www.mymirror.com",
+							RequestBody: "off",
 						},
 					},
 					{
