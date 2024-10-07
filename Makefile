@@ -124,6 +124,9 @@ build:  ## Build ingress controller, debug tool and pre-stop hook.
 clean: ## Remove .gocache directory.
 	rm -rf bin/ .gocache/ .cache/
 
+.PHONY: verify-docs
+verify-docs: ## Verify doc generation
+	hack/verify-annotation-docs.sh
 
 .PHONY: static-check
 static-check: ## Run verification script for boilerplate, codegen, gofmt, golint, lualint and chart-lint.
@@ -237,8 +240,8 @@ ensure-buildx:
 show-version:
 	echo -n $(TAG)
 
-PLATFORMS ?= amd64 arm arm64
-BUILDX_PLATFORMS ?= linux/amd64,linux/arm,linux/arm64
+PLATFORMS ?= amd64 arm arm64 s390x
+BUILDX_PLATFORMS ?= linux/amd64,linux/arm,linux/arm64,linux/s390x
 
 .PHONY: release # Build a multi-arch docker image
 release: ensure-buildx clean
