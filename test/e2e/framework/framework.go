@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -117,6 +118,11 @@ func NewSimpleFramework(baseName string, opts ...func(*Framework)) *Framework {
 	ginkgo.AfterEach(f.DestroyEnvironment)
 
 	return f
+}
+
+func IsCrossplane() bool {
+	isCrossplane, ok := os.LookupEnv("IS_CROSSPLANE")
+	return ok && isCrossplane == "true"
 }
 
 func (f *Framework) CreateEnvironment() {
