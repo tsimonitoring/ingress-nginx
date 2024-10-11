@@ -54,11 +54,8 @@ var _ = framework.DescribeAnnotation("relative-redirects", func() {
 		})
 
 		ginkgo.By("turning off absolute_redirect directive")
-		assert.NotContains(ginkgo.GinkgoT(), serverConfig, "absolute_redirect off;")
+		assert.Contains(ginkgo.GinkgoT(), serverConfig, "absolute_redirect off;")
 	})
-
-	//ginkgo.It("should respond with a custom redirect code", func() {
-	//	ginkgo.By("setting permanent-redirect-code annotation")
 
 	ginkgo.It("should respond with absolute URL in Location", func() {
 		ginkgo.By("setup ingress")
