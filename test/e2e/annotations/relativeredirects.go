@@ -59,7 +59,7 @@ var _ = framework.DescribeAnnotation("relative-redirects", func() {
 	})
 
 	ginkgo.It("should respond with absolute URL in Location", func() {
-		absoluteRedirectURL := fmt.Sprintf("%s%s", relativeRedirectsHostname, relativeRedirectsRelativeRedirectURL)
+		absoluteRedirectURL := fmt.Sprintf("http://%s%s", relativeRedirectsHostname, relativeRedirectsRelativeRedirectURL)
 		annotations := map[string]string{
 			"nginx.ingress.kubernetes.io/permanent-redirect": relativeRedirectsRelativeRedirectURL,
 			"nginx.ingress.kubernetes.io/relative-redirects": "false",
