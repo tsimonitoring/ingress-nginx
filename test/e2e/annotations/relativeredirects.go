@@ -26,6 +26,12 @@ import (
 	"k8s.io/ingress-nginx/test/e2e/framework"
 )
 
+const (
+	relativeRedirectsHostname            = "rr.foo.com"
+	relativeRedirectsRedirectPath        = "/something"
+	relativeRedirectsRelativeRedirectURL = "/new-location"
+)
+
 var _ = framework.DescribeAnnotation("relative-redirects", func() {
 	f := framework.NewDefaultFramework("relative-redirects")
 
@@ -35,18 +41,17 @@ var _ = framework.DescribeAnnotation("relative-redirects", func() {
 	})
 
 	ginkgo.It("configures Nginx correctly", func() {
-		host := "rr.foo.com"
 		annotations := map[string]string{
 			"nginx.ingress.kubernetes.io/relative-redirects": "true",
 		}
 
-		ing := framework.NewSingleIngress(host, "/", host, f.Namespace, framework.HTTPBunService, 80, annotations)
+		ing := framework.NewSingleIngress(relativeRedirectsHostname, "/", relativeRedirectsHostname, f.Namespace, framework.HTTPBunService, 80, annotations)
 		f.EnsureIngress(ing)
 
 		var serverConfig string
-		f.WaitForNginxServer(host, func(srvCfg string) bool {
+		f.WaitForNginxServer(relativeRedirectsHostname, func(srvCfg string) bool {
 			serverConfig = srvCfg
-			return strings.Contains(serverConfig, fmt.Sprintf("server_name %s", host))
+			return strings.Contains(serverConfig, fmt.Sprintf("server_name %s", relativeRedirectsHostname))
 		})
 
 		ginkgo.By("turning off absolute_redirect directive")
@@ -54,55 +59,49 @@ var _ = framework.DescribeAnnotation("relative-redirects", func() {
 	})
 
 	ginkgo.It("should respond with absolute URL in Location", func() {
-		host := "rr.foo.com"
-		redirectPath := "/something"
-		relativeRedirectURL := "/new-location"
-		absoluteRedirectURL := fmt.Sprintf("%s%s", host, relativeRedirectURL)
+		absoluteRedirectURL := fmt.Sprintf("%s%s", relativeRedirectsHostname, relativeRedirectsRelativeRedirectURL)
 		annotations := map[string]string{
-			"nginx.ingress.kubernetes.io/permanent-redirect": relativeRedirectURL,
+			"nginx.ingress.kubernetes.io/permanent-redirect": relativeRedirectsRelativeRedirectURL,
 			"nginx.ingress.kubernetes.io/relative-redirects": "false",
 		}
 
 		ginkgo.By("setup ingress")
-		ing := framework.NewSingleIngress(host, redirectPath, host, f.Namespace, framework.EchoService, 80, annotations)
+		ing := framework.NewSingleIngress(relativeRedirectsHostname, relativeRedirectsRedirectPath, relativeRedirectsHostname, f.Namespace, framework.EchoService, 80, annotations)
 		f.EnsureIngress(ing)
 
-		f.WaitForNginxServer(host, func(srvCfg string) bool {
-			return strings.Contains(srvCfg, fmt.Sprintf("server_name %s", host))
+		f.WaitForNginxServer(relativeRedirectsHostname, func(srvCfg string) bool {
+			return strings.Contains(srvCfg, fmt.Sprintf("server_name %s", relativeRedirectsHostname))
 		})
 
 		ginkgo.By("sending request to redirected URL path")
 		f.HTTPTestClient().
-			GET(redirectPath).
-			WithHeader("Host", host).
+			GET(relativeRedirectsRedirectPath).
+			WithHeader("Host", relativeRedirectsHostname).
 			Expect().
 			Status(http.StatusMovedPermanently).
 			Header("Location").Equal(absoluteRedirectURL)
 	})
 
 	ginkgo.It("should respond with relative URL in Location", func() {
-		host := "rr.foo.com"
-		redirectPath := "/something"
-		relativeRedirectURL := "/new-location"
 		annotations := map[string]string{
-			"nginx.ingress.kubernetes.io/permanent-redirect": relativeRedirectURL,
+			"nginx.ingress.kubernetes.io/permanent-redirect": relativeRedirectsRelativeRedirectURL,
 			"nginx.ingress.kubernetes.io/relative-redirects": "true",
 		}
 
 		ginkgo.By("setup ingress")
-		ing := framework.NewSingleIngress(host, redirectPath, host, f.Namespace, framework.EchoService, 80, annotations)
+		ing := framework.NewSingleIngress(relativeRedirectsHostname, relativeRedirectsRedirectPath, relativeRedirectsHostname, f.Namespace, framework.EchoService, 80, annotations)
 		f.EnsureIngress(ing)
 
-		f.WaitForNginxServer(host, func(srvCfg string) bool {
-			return strings.Contains(srvCfg, fmt.Sprintf("server_name %s", host))
+		f.WaitForNginxServer(relativeRedirectsHostname, func(srvCfg string) bool {
+			return strings.Contains(srvCfg, fmt.Sprintf("server_name %s", relativeRedirectsHostname))
 		})
 
 		ginkgo.By("sending request to redirected URL path")
 		f.HTTPTestClient().
-			GET(redirectPath).
-			WithHeader("Host", host).
+			GET(relativeRedirectsRedirectPath).
+			WithHeader("Host", relativeRedirectsHostname).
 			Expect().
 			Status(http.StatusMovedPermanently).
-			Header("Location").Equal(relativeRedirectURL)
+			Header("Location").Equal(relativeRedirectsRelativeRedirectURL)
 	})
 })
