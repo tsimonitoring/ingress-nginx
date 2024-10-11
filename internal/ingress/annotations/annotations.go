@@ -53,6 +53,7 @@ import (
 	"k8s.io/ingress-nginx/internal/ingress/annotations/proxyssl"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/ratelimit"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/redirect"
+	"k8s.io/ingress-nginx/internal/ingress/annotations/relativeredirects"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/rewrite"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/satisfy"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/serversnippet"
@@ -105,6 +106,7 @@ type Ingress struct {
 	SessionAffinity             sessionaffinity.Config
 	SSLPassthrough              bool
 	UsePortInRedirects          bool
+	RelativeRedirects           bool
 	UpstreamHashBy              upstreamhashby.Config
 	LoadBalancing               string
 	UpstreamVhost               string
@@ -153,6 +155,7 @@ func NewAnnotationFactory(cfg resolver.Resolver) map[string]parser.IngressAnnota
 		"SessionAffinity":             sessionaffinity.NewParser(cfg),
 		"SSLPassthrough":              sslpassthrough.NewParser(cfg),
 		"UsePortInRedirects":          portinredirect.NewParser(cfg),
+		"RelativeRedirects":           relativeredirects.NewParser(cfg),
 		"UpstreamHashBy":              upstreamhashby.NewParser(cfg),
 		"LoadBalancing":               loadbalancing.NewParser(cfg),
 		"UpstreamVhost":               upstreamvhost.NewParser(cfg),
