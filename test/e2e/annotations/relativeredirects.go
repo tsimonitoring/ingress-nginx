@@ -34,12 +34,8 @@ var _ = framework.DescribeAnnotation("relative-redirects", func() {
 		f.NewEchoDeployment()
 	})
 
-	host := "rr.foo.com"
-	redirectPath := "/something"
-	relativeRedirectURL := "/new-location"
-	absoluteRedirectURL := fmt.Sprintf("%s%s", host, relativeRedirectURL)
-
 	ginkgo.It("configures Nginx correctly", func() {
+		host := "rr.foo.com"
 		annotations := map[string]string{
 			"nginx.ingress.kubernetes.io/relative-redirects": "true",
 		}
@@ -58,11 +54,16 @@ var _ = framework.DescribeAnnotation("relative-redirects", func() {
 	})
 
 	ginkgo.It("should respond with absolute URL in Location", func() {
-		ginkgo.By("setup ingress")
+		host := "rr.foo.com"
+		redirectPath := "/something"
+		relativeRedirectURL := "/new-location"
+		absoluteRedirectURL := fmt.Sprintf("%s%s", host, relativeRedirectURL)
 		annotations := map[string]string{
 			"nginx.ingress.kubernetes.io/permanent-redirect": relativeRedirectURL,
 			"nginx.ingress.kubernetes.io/relative-redirects": "false",
 		}
+
+		ginkgo.By("setup ingress")
 		ing := framework.NewSingleIngress(host, redirectPath, host, f.Namespace, framework.EchoService, 80, annotations)
 		f.EnsureIngress(ing)
 
@@ -80,11 +81,15 @@ var _ = framework.DescribeAnnotation("relative-redirects", func() {
 	})
 
 	ginkgo.It("should respond with relative URL in Location", func() {
-		ginkgo.By("setup ingress")
+		host := "rr.foo.com"
+		redirectPath := "/something"
+		relativeRedirectURL := "/new-location"
 		annotations := map[string]string{
 			"nginx.ingress.kubernetes.io/permanent-redirect": relativeRedirectURL,
 			"nginx.ingress.kubernetes.io/relative-redirects": "true",
 		}
+
+		ginkgo.By("setup ingress")
 		ing := framework.NewSingleIngress(host, redirectPath, host, f.Namespace, framework.EchoService, 80, annotations)
 		f.EnsureIngress(ing)
 
