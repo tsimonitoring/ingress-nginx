@@ -1386,7 +1386,7 @@ _References:_
 
 ## relative-redirects
 
-Uses relative redirects instead of absolute redirects. Absolute redirects are the default in nginx. RFC7231 allows relative redirects since 2014.
+Use relative redirects instead of absolute redirects. Absolute redirects are the default in nginx. RFC7231 allows relative redirects since 2014.
 Similar to the Ingress rule annotation `nginx.ingress.kubernetes.io/relative-redirects`.
 
 _**default:**_ is false

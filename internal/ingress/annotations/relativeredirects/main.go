@@ -67,7 +67,7 @@ func NewParser(r resolver.Resolver) parser.IngressAnnotation {
 func (ar relativeRedirect) Parse(ing *networking.Ingress) (interface{}, error) {
 	val, err := parser.GetBoolAnnotation(relativeRedirectsAnnotation, ing, ar.annotationConfig.Annotations)
 
-	// A missing annotation is not a problem, just use the default which is `on`
+	// A missing annotation is not a problem, just use the default which is `absolute_redirects on`
 	if goErrors.Is(err, errors.ErrMissingAnnotations) {
 		return false, nil // default is false
 	}
