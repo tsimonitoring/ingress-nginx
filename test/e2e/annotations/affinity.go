@@ -393,7 +393,8 @@ var _ = framework.DescribeAnnotation("affinity session-cookie-name", func() {
 		f.WaitForNginxServer(host,
 			func(server string) bool {
 				// server alias sort by sort.Strings(), see: internal/ingress/annotations/alias/main.go:60
-				return strings.Contains(server, fmt.Sprintf("server_name %s %s %s ;", host, alias1, alias2))
+				return strings.Contains(server, fmt.Sprintf("server_name %s %s %s ;", host, alias1, alias2)) ||
+					strings.Contains(server, fmt.Sprintf("server_name %s %s %s;", host, alias1, alias2))
 			})
 
 		f.HTTPTestClient().

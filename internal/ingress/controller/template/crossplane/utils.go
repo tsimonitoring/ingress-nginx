@@ -422,7 +422,7 @@ func buildCorsOriginRegex(corsOrigins []string) ngx_crossplane.Directives {
 		}
 	}
 
-	originsArray := []string{"$http_origin", "~*"}
+	originsArray := []string{"("}
 	for i, origin := range corsOrigins {
 		originTrimmed := strings.TrimSpace(origin)
 		if originTrimmed != "" {
@@ -432,9 +432,12 @@ func buildCorsOriginRegex(corsOrigins []string) ngx_crossplane.Directives {
 			originsArray = append(originsArray, "|")
 		}
 	}
+	originsArray = append(originsArray, ")$")
 
+	// originsArray should be converted to a single string, as it is a single directive for if.
+	origins := strings.Join(originsArray, "")
 	return ngx_crossplane.Directives{
-		buildBlockDirective("if", originsArray, ngx_crossplane.Directives{
+		buildBlockDirective("if", []string{"$http_origin", "~*", origins}, ngx_crossplane.Directives{
 			buildDirective("set", "$cors", "true"),
 		}),
 	}

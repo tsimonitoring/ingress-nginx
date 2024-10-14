@@ -64,6 +64,13 @@ var _ = framework.DescribeAnnotation("from-to-www-redirect", func() {
 	ginkgo.It("should redirect from www HTTPS to HTTPS", func() {
 		ginkgo.By("setting up server for redirect from www")
 
+		h := make(map[string]string)
+		h["ExpectedHost"] = "$http_host"
+		cfgMap := "add-headers-configmap"
+
+		f.CreateConfigMap(cfgMap, h)
+		f.UpdateNginxConfigMapData("add-headers", fmt.Sprintf("%s/%s", f.Namespace, cfgMap))
+
 		fromHost := fmt.Sprintf("%s.nip.io", f.GetNginxIP())
 		toHost := fmt.Sprintf("www.%s", fromHost)
 
@@ -108,7 +115,7 @@ var _ = framework.DescribeAnnotation("from-to-www-redirect", func() {
 			WithURL(f.GetURL(framework.HTTPS)).
 			WithHeader("Host", fromHost).
 			Expect().
-			Status(http.StatusOK)
-		// Header("ExpectedHost").Equal(fromHost) // TODO (rkatz) - Get the host from Backend instead
+			Status(http.StatusOK).
+			Header("ExpectedHost").Equal(fromHost)
 	})
 })

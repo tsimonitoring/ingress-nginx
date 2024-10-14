@@ -259,15 +259,6 @@ func (c *Template) buildHTTP() {
 		httpBlock = append(httpBlock, buildDirective("proxy_pass_header", "Server"))
 	}
 
-	if cfg.EnableBrotli {
-		httpBlock = append(httpBlock,
-			buildDirective("brotli", "on"),
-			buildDirective("brotli_comp_level", cfg.BrotliLevel),
-			buildDirective("brotli_min_length", cfg.BrotliMinLength),
-			buildDirective("brotli_types", strings.Split(cfg.BrotliTypes, " ")),
-		)
-	}
-
 	for k := range cfg.HideHeaders {
 		httpBlock = append(httpBlock, buildDirective("proxy_hide_header", cfg.HideHeaders[k]))
 	}
