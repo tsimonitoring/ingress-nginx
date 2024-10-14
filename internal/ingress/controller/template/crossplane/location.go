@@ -223,14 +223,9 @@ func (c *Template) buildLocation(server *ingress.Server,
 		buildDirective("set", "$pass_port", "$pass_server_port"),
 		buildDirective("set", "$proxy_alternative_upstream_name", ""),
 		buildDirective("set", "$location_path", strings.ReplaceAll(ing.Path, `$`, `${literal_dollar}`)),
-		buildDirective("rewrite_by_lua_file", "/etc/nginx/lua/nginx/ngx_rewrite.lua"),
-		buildDirective("header_filter_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_srv_hdr_filter.lua"),
-		buildDirective("log_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_log_block.lua"),
-		buildDirective("rewrite_log", location.Logs.Rewrite),
-		buildDirective("http2_push_preload", location.HTTP2PushPreload),
-		buildDirective("port_in_redirect", location.UsePortInRedirects),
 	}
 
+	locationDirectives = append(locationDirectives, locationConfigForLua(location, *c.tplConfig)...)
 	locationDirectives = append(locationDirectives, buildCertificateDirectives(location)...)
 
 	if cfg.Cfg.UseProxyProtocol {
@@ -244,14 +239,20 @@ func (c *Template) buildLocation(server *ingress.Server,
 	locationDirectives = append(locationDirectives,
 		buildOpentelemetryForLocationDirectives(cfg.Cfg.EnableOpentelemetry, cfg.Cfg.OpentelemetryTrustIncomingSpan, location)...)
 
+	locationDirectives = append(locationDirectives,
+		buildDirective("rewrite_by_lua_file", "/etc/nginx/lua/nginx/ngx_rewrite.lua"),
+		buildDirective("header_filter_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_srv_hdr_filter.lua"),
+		buildDirective("log_by_lua_file", "/etc/nginx/lua/nginx/ngx_conf_log_block.lua"),
+		buildDirective("rewrite_log", location.Logs.Rewrite),
+		buildDirective("http2_push_preload", location.HTTP2PushPreload),
+		buildDirective("port_in_redirect", location.UsePortInRedirects))
+
 	if location.Mirror.Source != "" {
 		locationDirectives = append(locationDirectives,
 			buildDirective("mirror", location.Mirror.Source),
 			buildDirective("mirror_request_body", location.Mirror.RequestBody),
 		)
 	}
-
-	locationDirectives = append(locationDirectives, locationConfigForLua(location, *c.tplConfig)...)
 
 	if !location.Logs.Access {
 		locationDirectives = append(locationDirectives,
@@ -336,8 +337,8 @@ func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingres
 		buildDirective("proxy_buffers", location.Proxy.BuffersNumber, location.Proxy.BufferSize),
 		buildDirective("proxy_request_buffering", location.Proxy.RequestBuffering),
 		buildDirective("proxy_http_version", location.Proxy.ProxyHTTPVersion),
-		buildDirective("proxy_cookie_domain", location.Proxy.CookieDomain),
-		buildDirective("proxy_cookie_path", location.Proxy.CookiePath),
+		buildDirective("proxy_cookie_domain", strings.Split(location.Proxy.CookieDomain, " ")),
+		buildDirective("proxy_cookie_path", strings.Split(location.Proxy.CookiePath, " ")),
 		buildDirective("proxy_next_upstream_timeout", location.Proxy.NextUpstreamTimeout),
 		buildDirective("proxy_next_upstream_tries", location.Proxy.NextUpstreamTries),
 		buildDirective("proxy_next_upstream", buildNextUpstream(location.Proxy.NextUpstream, c.tplConfig.Cfg.RetryNonIdempotent)),
@@ -441,7 +442,7 @@ func buildCertificateDirectives(location *ingress.Location) ngx_crossplane.Direc
 				location.ProxySSL.CAFileName,
 			),
 			buildDirective("proxy_ssl_ciphers", location.ProxySSL.Ciphers),
-			buildDirective("proxy_ssl_protocols", location.ProxySSL.Protocols),
+			buildDirective("proxy_ssl_protocols", strings.Split(location.ProxySSL.Protocols, " ")),
 			buildDirective("proxy_ssl_verify", location.ProxySSL.Verify),
 			buildDirective("proxy_ssl_verify_depth", location.ProxySSL.VerifyDepth),
 		)
@@ -645,11 +646,11 @@ func locationConfigForLua(location *ingress.Location, all config.TemplateConfig)
 	*/
 
 	return ngx_crossplane.Directives{
-		buildDirective("set", "$force_ssl_redirect", location.Rewrite.ForceSSLRedirect),
-		buildDirective("set", "$ssl_redirect", location.Rewrite.SSLRedirect),
-		buildDirective("set", "$force_no_ssl_redirect", isLocationInLocationList(location, all.Cfg.NoTLSRedirectLocations)),
-		buildDirective("set", "$preserve_trailing_slash", location.Rewrite.PreserveTrailingSlash),
-		buildDirective("set", "$use_port_in_redirects", location.UsePortInRedirects),
+		buildDirective("set", "$force_ssl_redirect", strconv.FormatBool(location.Rewrite.ForceSSLRedirect)),
+		buildDirective("set", "$ssl_redirect", strconv.FormatBool(location.Rewrite.SSLRedirect)),
+		buildDirective("set", "$force_no_ssl_redirect", strconv.FormatBool(isLocationInLocationList(location, all.Cfg.NoTLSRedirectLocations))),
+		buildDirective("set", "$preserve_trailing_slash", strconv.FormatBool(location.Rewrite.PreserveTrailingSlash)),
+		buildDirective("set", "$use_port_in_redirects", strconv.FormatBool(location.UsePortInRedirects)),
 	}
 }
 

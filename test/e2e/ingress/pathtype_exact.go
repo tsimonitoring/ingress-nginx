@@ -35,23 +35,30 @@ var _ = framework.IngressNginxDescribe("[Ingress] [PathType] exact", func() {
 	})
 
 	ginkgo.It("should choose exact location for /exact", func() {
-		disableSnippet := f.AllowSnippetConfiguration()
-		defer disableSnippet()
 
-		host := "exact.path"
+		f.UpdateNginxConfigMapData("global-allowed-response-headers", "pathtype,duplicated")
 
 		annotations := map[string]string{
-			"nginx.ingress.kubernetes.io/configuration-snippet": `more_set_input_headers "pathType: exact";`,
+			"nginx.ingress.kubernetes.io/custom-headers": f.Namespace + "/custom-headers-exact",
 		}
 
+		f.CreateConfigMap("custom-headers-exact", map[string]string{
+			"pathtype": "exact",
+		})
+
+		host := "exact.path"
 		exactPathType := networking.PathTypeExact
 		ing := framework.NewSingleIngress("exact", "/exact", host, f.Namespace, framework.EchoService, 80, annotations)
 		ing.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].PathType = &exactPathType
 		f.EnsureIngress(ing)
 
 		annotations = map[string]string{
-			"nginx.ingress.kubernetes.io/configuration-snippet": `more_set_input_headers "pathType: prefix";`,
+			"nginx.ingress.kubernetes.io/custom-headers": f.Namespace + "/custom-headers-prefix",
 		}
+
+		f.CreateConfigMap("custom-headers-prefix", map[string]string{
+			"pathtype": "prefix",
+		})
 
 		ing = framework.NewSingleIngress("exact-suffix", "/exact", host, f.Namespace, framework.EchoService, 80, annotations)
 		f.EnsureIngress(ing)
@@ -85,11 +92,13 @@ var _ = framework.IngressNginxDescribe("[Ingress] [PathType] exact", func() {
 		assert.Contains(ginkgo.GinkgoT(), body, "pathtype=prefix")
 
 		annotations = map[string]string{
-			"nginx.ingress.kubernetes.io/configuration-snippet": `
-				more_set_input_headers "pathType: prefix";
-				more_set_input_headers "duplicated: true";
-			`,
+			"nginx.ingress.kubernetes.io/custom-headers": f.Namespace + "/custom-headers-duplicated",
 		}
+
+		f.CreateConfigMap("custom-headers-duplicated", map[string]string{
+			"pathtype":   "prefix",
+			"duplicated": "true",
+		})
 
 		ing = framework.NewSingleIngress("duplicated-prefix", "/exact", host, f.Namespace, framework.EchoService, 80, annotations)
 		f.EnsureIngress(ing)
