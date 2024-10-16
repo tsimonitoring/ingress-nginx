@@ -1514,6 +1514,7 @@ func locationApplyAnnotations(loc *ingress.Location, anns *annotations.Ingress) 
 	loc.ProxySSL = anns.ProxySSL
 	loc.RateLimit = anns.RateLimit
 	loc.Redirect = anns.Redirect
+	loc.RelativeRedirects = anns.RelativeRedirects
 	loc.Rewrite = anns.Rewrite
 	loc.UpstreamVhost = anns.UpstreamVhost
 	loc.Denylist = anns.Denylist

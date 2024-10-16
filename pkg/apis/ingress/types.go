@@ -309,6 +309,9 @@ type Location struct {
 	// UsePortInRedirects indicates if redirects must specify the port
 	// +optional
 	UsePortInRedirects bool `json:"usePortInRedirects"`
+	// RelativeRedirects indicates if redirects are relative and NOT absolute
+	// +optional
+	RelativeRedirects bool `json:"relativeRedirects"`
 	// ConfigurationSnippet contains additional configuration for the backend
 	// to be considered in the configuration of the location
 	ConfigurationSnippet string `json:"configurationSnippet"`
