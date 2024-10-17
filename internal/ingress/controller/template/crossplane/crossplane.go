@@ -84,15 +84,12 @@ func (c *Template) Write(conf *config.TemplateConfig) ([]byte, error) {
 		ErrorOnUnknownDirectives: true,
 		StopParsingOnError:       true,
 		IgnoreDirectives: []string{"more_clear_headers",
-			"more_set_headers",
-			"opentelemetry_config",
-			"opentelemetry",
-			"opentelemetry_propagate",
-			"opentelemetry_trust_incoming_spans"}, // TODO: Add more_set_headers
+			"more_set_headers"}, // TODO: Add more_set_headers
 		DirectiveSources: []ngx_crossplane.MatchFunc{
 			ngx_crossplane.DefaultDirectivesMatchFunc,
 			ngx_crossplane.MatchLuaLatest,
 			extramodules.BrotliMatchFn,
+			extramodules.OpentelemetryMatchFn,
 		},
 		LexOptions: ngx_crossplane.LexOptions{
 			Lexers: []ngx_crossplane.RegisterLexer{lua.RegisterLexer()},
