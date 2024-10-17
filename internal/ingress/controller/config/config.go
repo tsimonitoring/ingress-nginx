@@ -806,7 +806,6 @@ func NewDefault() Configuration {
 		NginxStatusIpv6Whitelist:         defNginxStatusIpv6Whitelist,
 		ProxyRealIPCIDR:                  defIPCIDR,
 		ProxyProtocolHeaderTimeout:       defProxyDeadlineDuration,
-		ServerNameHashBucketSize:         64,
 		ServerNameHashMaxSize:            1024,
 		ProxyHeadersHashMaxSize:          512,
 		ProxyHeadersHashBucketSize:       64,

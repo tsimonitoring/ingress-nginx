@@ -78,30 +78,32 @@ func (c *Template) buildServerDirective(server *ingress.Server) *ngx_crossplane.
 		healthLocation := buildBlockDirective("location",
 			[]string{c.tplConfig.HealthzURI}, dirs)
 		serverBlock = append(serverBlock, healthLocation)
-	}
 
-	// "/nginx_status" location
-	statusLocationDirs := ngx_crossplane.Directives{}
-	if cfg.EnableOpentelemetry {
-		statusLocationDirs = append(statusLocationDirs, buildDirective("opentelemetry", "off"))
-	}
+		// "/nginx_status" location
+		statusLocationDirs := ngx_crossplane.Directives{}
+		if cfg.EnableOpentelemetry {
+			statusLocationDirs = append(statusLocationDirs, buildDirective("opentelemetry", "off"))
+		}
 
-	for _, v := range c.tplConfig.NginxStatusIpv4Whitelist {
-		statusLocationDirs = append(statusLocationDirs, buildDirective("allow", v))
-	}
-
-	if c.tplConfig.IsIPV6Enabled {
-		for _, v := range c.tplConfig.NginxStatusIpv6Whitelist {
+		for _, v := range c.tplConfig.NginxStatusIpv4Whitelist {
 			statusLocationDirs = append(statusLocationDirs, buildDirective("allow", v))
 		}
-	}
-	statusLocationDirs = append(statusLocationDirs,
-		buildDirective("deny", "all"),
-		buildDirective("access_log", "off"),
-		buildDirective("stub_status", "on"))
 
-	serverBlock = append(serverBlock, buildBlockDirective("location", []string{"/nginx_status"}, statusLocationDirs))
-	// End of "nginx_status" location
+		if c.tplConfig.IsIPV6Enabled {
+			for _, v := range c.tplConfig.NginxStatusIpv6Whitelist {
+				statusLocationDirs = append(statusLocationDirs, buildDirective("allow", v))
+			}
+		}
+		statusLocationDirs = append(statusLocationDirs,
+			buildDirective("deny", "all"),
+			buildDirective("access_log", "off"),
+			buildDirective("stub_status", "on"))
+
+		// End of "nginx_status" location
+
+		serverBlock = append(serverBlock, buildBlockDirective("location", []string{"/nginx_status"}, statusLocationDirs))
+
+	}
 
 	// DO NOT MOVE! THIS IS THE END DIRECTIVE OF SERVERS
 	serverBlock = append(serverBlock, buildCustomErrorLocation("upstream-default-backend", cfg.CustomHTTPErrors, c.tplConfig.EnableMetrics)...)

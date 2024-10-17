@@ -126,7 +126,7 @@ func (c *Template) buildHTTP() {
 		httpBlock = append(httpBlock, buildDirective("gzip_comp_level", cfg.GzipLevel))
 		httpBlock = append(httpBlock, buildDirective("gzip_http_version", "1.1"))
 		httpBlock = append(httpBlock, buildDirective("gzip_min_length", cfg.GzipMinLength))
-		httpBlock = append(httpBlock, buildDirective("gzip_types", cfg.GzipTypes))
+		httpBlock = append(httpBlock, buildDirective("gzip_types", strings.Split(cfg.GzipTypes, " ")))
 		httpBlock = append(httpBlock, buildDirective("gzip_proxied", "any"))
 		httpBlock = append(httpBlock, buildDirective("gzip_vary", "on"))
 
@@ -142,6 +142,11 @@ func (c *Template) buildHTTP() {
 		httpBlock = append(httpBlock, buildDirective("brotli_types", cfg.BrotliTypes))
 	}
 
+	if (c.tplConfig.Cfg.EnableOpentelemetry || shouldLoadOpentelemetryModule(c.tplConfig.Servers)) &&
+		cfg.OpentelemetryOperationName != "" {
+		httpBlock = append(httpBlock, buildDirective("opentelemetry_operation_name", cfg.OpentelemetryOperationName))
+	}
+
 	if !cfg.ShowServerTokens {
 		httpBlock = append(httpBlock, buildDirective("more_clear_headers", "Server"))
 	}
@@ -155,11 +160,9 @@ func (c *Template) buildHTTP() {
 	))
 
 	if len(c.tplConfig.AddHeaders) > 0 {
-		additionalHeaders := make([]string, 0)
 		for headerName, headerValue := range c.tplConfig.AddHeaders {
-			additionalHeaders = append(additionalHeaders, fmt.Sprintf("%s: %s", headerName, headerValue))
+			httpBlock = append(httpBlock, buildDirective("more_set_headers", fmt.Sprintf("%s: %s", headerName, headerValue)))
 		}
-		httpBlock = append(httpBlock, buildDirective("more_set_headers", additionalHeaders))
 	}
 
 	escape := ""

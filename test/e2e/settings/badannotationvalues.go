@@ -103,6 +103,9 @@ var _ = framework.DescribeAnnotation("Bad annotation values", func() {
 	})
 
 	ginkgo.It("[BAD_ANNOTATIONS] should allow an ingress if there is a default blocklist config in place", func() {
+		if framework.IsCrossplane() {
+			ginkgo.Skip("Crossplane does not support snippets")
+		}
 		disableSnippet := f.AllowSnippetConfiguration()
 		defer disableSnippet()
 

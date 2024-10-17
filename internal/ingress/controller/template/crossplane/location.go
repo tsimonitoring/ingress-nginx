@@ -260,7 +260,6 @@ func (c *Template) buildLocation(server *ingress.Server,
 		)
 	}
 	if location.Denied != nil {
-		locationDirectives = append(locationDirectives, &ngx_crossplane.Directive{})
 		locationDirectives = append(locationDirectives,
 			buildDirectiveWithComment("return", fmt.Sprintf("Location denied. Reason: %s", *location.Denied), "503"))
 	} else {
@@ -286,7 +285,7 @@ func (c *Template) buildAllowedLocation(server *ingress.Server, location *ingres
 		dir = append(dir, buildCorsDirectives(location.CorsConfig)...)
 	}
 	// TODO: Implement the build Auth Location
-	dir = append(dir, buildAuthLocationConfig()...)
+	//dir = append(dir, buildAuthLocationConfig()...)
 
 	dir = append(dir, buildRateLimit(location)...)
 
@@ -564,8 +563,7 @@ func buildOpentelemetryForLocationDirectives(isOTEnabled, isOTTrustSet bool, loc
 		)
 		if location.Opentelemetry.OperationName != "" {
 			directives = append(directives,
-				buildDirective("opentelemetry_operation_name", location.Opentelemetry.OperationName),
-			)
+				buildDirective("opentelemetry_operation_name", location.Opentelemetry.OperationName))
 		}
 
 		if (!isOTTrustSet && !location.Opentelemetry.TrustSet) ||
