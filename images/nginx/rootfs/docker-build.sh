@@ -17,9 +17,10 @@
 # sudo install linux-amd64/helm /usr/local/bin
 # sudo su -
 set -x
-set -e
 BRANCH=$(git branch --show-current)
-docker login -u tsimonitoring
+jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q tsimonitoring:
+[ $? -eq 0 ] || docker login -u tsimonitoring
+set -e
 docker stop docker
 docker rm docker
 sudo docker run --name=docker --group-add=0 --privileged --security-opt seccomp=unconfined --user=0 -v /var/run/docker.sock:/var/run/docker.sock -d docker sh -c "while true; do sleep 2000; done"
