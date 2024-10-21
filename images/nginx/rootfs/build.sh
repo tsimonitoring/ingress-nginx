@@ -221,10 +221,10 @@ get_src 66dc7081488811e9f925719e34d1b4504c2801c81dee2920e5452a86b11405ae \
 get_src aa961eafb8317e0eb8da37eb6e2c9ff42267edd18b56947384e719b85188f58b \
         "https://github.com/vision5/ngx_devel_kit/archive/v$NDK_VERSION.tar.gz"
 
-get_src abc123 \
+get_src 13542725463f1ea106edaef078c2276065cf3da998cb1d3dcf92630daa3f64d4 \
         "https://github.com/open-telemetry/opentelemetry-cpp/archive/$OPENTELEMETRY_CPP_VERSION.tar.gz" "opentelemetry-cpp"
 
-get_src abc123 \
+get_src c069c0d96137cf005d34411fa67dd3b6f1f8c64af1e7fb2fe0089a41c425acd7 \
         "https://github.com/open-telemetry/opentelemetry-proto/archive/$OPENTELEMETRY_PROTO_VERSION.tar.gz" "opentelemetry-proto"
 
 get_src cd5e2cc834bcfa30149e7511f2b5a2183baf0b70dc091af717a89a64e44a2985 \
@@ -361,10 +361,10 @@ make install
 ln -s /usr/local/bin/luajit /usr/local/bin/lua
 ln -s "$LUAJIT_INC" /usr/local/include/lua
 
-cd "$BUILD_PATH/opentelemetry-cpp"
+cd "$(ls -1Ad $BUILD_PATH/opentelemetry-cpp*)"
 export CXXFLAGS="-DBENCHMARK_HAS_NO_INLINE_ASSEMBLY"
 cmake -B build -G Ninja -Wno-dev \
-        -DOTELCPP_PROTO_PATH="${BUILD_PATH}/opentelemetry-proto/" \
+        -DOTELCPP_PROTO_PATH="$(ls -1Ad ${BUILD_PATH}/opentelemetry-proto*)/" \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DBUILD_SHARED_LIBS=ON \
         -DBUILD_TESTING="OFF" \
