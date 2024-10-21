@@ -20,10 +20,11 @@ set -x
 BRANCH=$(git branch --show-current)
 jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q tsimonitoring:
 [ $? -eq 0 ] || docker login -u tsimonitoring
-set -e
 docker stop docker
 docker rm docker
+docker pull docker.io/docker
 sudo docker run --name=docker --group-add=0 --privileged --security-opt seccomp=unconfined --user=0 -v /var/run/docker.sock:/var/run/docker.sock -d docker sh -c "while true; do sleep 2000; done"
+set -e
 docker exec -it docker sh -c "\
 docker version;\
 apk update;\
