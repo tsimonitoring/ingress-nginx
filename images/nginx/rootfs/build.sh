@@ -611,19 +611,14 @@ cd "$BUILD_PATH/nginx-$NGINX_VERSION"
 # apply nginx patches
 for PATCH in `ls /patches`;do
   echo "Patch: $PATCH"
-  # solve* release-1.11.2-patch-opentelemetry-cpp-and-contrib-and-proto
-  if [ ! "X$PATCH" = "Xnginx-1.21.4-http2.patch" ]; then
-    if [[ "$PATCH" == *.txt ]]; then
-      patch -p0 < /patches/$PATCH
-    else
-      patch -p1 < /patches/$PATCH
-    fi
+  if [[ "$PATCH" == *.txt ]]; then
+    patch -p0 < /patches/$PATCH
   else
-  	echo "Patch: do not patch $PATCH"
+    patch -p1 < /patches/$PATCH
   fi
 done
 
-# solve*
+# TODO ERROR
 #7 567.3 Patch: nginx-1.21.4-hash_overflow.patch
 #7 567.3 patching file src/core/ngx_hash.c
 #7 567.3 Hunk #1 succeeded at 336 with fuzz 2 (offset 24 lines).
