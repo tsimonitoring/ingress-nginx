@@ -56,4 +56,4 @@ export TAG="$TAG"
 make build image
 docker image ls
 docker push tsimonitoring/controller:$TAG
-docker image inspect tsimonitoring/controller:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk '{print "image: docker.io/" $1}'
+docker image inspect tsimonitoring/controller:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk '{print "image: docker.io/" $1}'|sed "s/controller/controller:$TAG/g"
