@@ -361,10 +361,10 @@ make install
 ln -s /usr/local/bin/luajit /usr/local/bin/lua
 ln -s "$LUAJIT_INC" /usr/local/include/lua
 
-cd "$BUILD_PATH/opentelemetry-cpp"
+cd "$(ls -1Ad $BUILD_PATH/opentelemetry-cpp*)"
 export CXXFLAGS="-DBENCHMARK_HAS_NO_INLINE_ASSEMBLY"
 cmake -B build -G Ninja -Wno-dev \
-        -DOTELCPP_PROTO_PATH="${BUILD_PATH}/opentelemetry-proto/" \
+        -DOTELCPP_PROTO_PATH="$(ls -1Ad ${BUILD_PATH}/opentelemetry-proto*)/" \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DBUILD_SHARED_LIBS=ON \
         -DBUILD_TESTING="OFF" \
