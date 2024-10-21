@@ -648,9 +648,10 @@ CC_OPT="-g -O2 -fPIE -fstack-protector-strong \
   --param=ssp-buffer-size=4 \
   -DTCP_FASTOPEN=23 \
   -fPIC \
-  -I$HUNTER_INSTALL_DIR/include \
   -Wno-cast-function-type"
+#  -I$HUNTER_INSTALL_DIR/include \
 
+#LD_OPT="-fPIE -fPIC -pie -Wl,-z,relro -Wl,-z,now -L$HUNTER_INSTALL_DIR/lib"
 LD_OPT="-fPIE -fPIC -pie -Wl,-z,relro -Wl,-z,now -L$HUNTER_INSTALL_DIR/lib"
 
 if [[ ${ARCH} != "aarch64" ]]; then
