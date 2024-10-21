@@ -125,6 +125,11 @@ export LUA_RESTY_GLOBAL_THROTTLE_VERSION=0.2.0
 # Check for recent changes:  https://github.com/microsoft/mimalloc/compare/v1.7.6...master
 export MIMALOC_VERSION=1.7.6
 
+# Check on https://github.com/open-telemetry/opentelemetry-cpp
+export OPENTELEMETRY_CPP_VERSION="v1.17.0"
+# Check on https://github.com/open-telemetry/opentelemetry-proto
+export OPENTELEMETRY_PROTO_VERSION="v1.3.2"
+
 export BUILD_PATH=/tmp/build
 
 ARCH=$(uname -m)
@@ -187,7 +192,22 @@ apk add \
   unzip \
   dos2unix \
   yaml-cpp \
-  coreutils
+  coreutils \
+  ninja \
+  gtest-dev \
+  git \
+  build-base \
+  pkgconfig \
+  c-ares-dev \
+  re2-dev \
+  grpc-dev \
+  protobuf-dev
+
+# apk add -X http://dl-cdn.alpinelinux.org/alpine/edge/testing opentelemetry-cpp-dev
+
+# There is some bug with some platforms and git, so force HTTP/1.1
+git config --global http.version HTTP/1.1
+git config --global http.postBuffer 157286400
 
 mkdir -p /etc/nginx
 
@@ -200,6 +220,12 @@ get_src 66dc7081488811e9f925719e34d1b4504c2801c81dee2920e5452a86b11405ae \
 
 get_src aa961eafb8317e0eb8da37eb6e2c9ff42267edd18b56947384e719b85188f58b \
         "https://github.com/vision5/ngx_devel_kit/archive/v$NDK_VERSION.tar.gz"
+
+get_src abc123 \
+        "https://github.com/open-telemetry/opentelemetry-cpp/archive/$OPENTELEMETRY_CPP_VERSION.tar.gz" "opentelemetry-cpp"
+
+get_src abc123 \
+        "https://github.com/open-telemetry/opentelemetry-proto/archive/$OPENTELEMETRY_PROTO_VERSION.tar.gz" "opentelemetry-proto"
 
 get_src cd5e2cc834bcfa30149e7511f2b5a2183baf0b70dc091af717a89a64e44a2985 \
         "https://github.com/openresty/set-misc-nginx-module/archive/v$SETMISC_VERSION.tar.gz"
@@ -335,133 +361,153 @@ make install
 ln -s /usr/local/bin/luajit /usr/local/bin/lua
 ln -s "$LUAJIT_INC" /usr/local/include/lua
 
-cd "$BUILD_PATH"
+cd "$BUILD_PATH/opentelemetry-cpp"
+export CXXFLAGS="-DBENCHMARK_HAS_NO_INLINE_ASSEMBLY"
+cmake -B build -G Ninja -Wno-dev \
+        -DOTELCPP_PROTO_PATH="${BUILD_PATH}/opentelemetry-proto/" \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DBUILD_SHARED_LIBS=ON \
+        -DBUILD_TESTING="OFF" \
+        -DBUILD_W3CTRACECONTEXT_TEST="OFF" \
+        -DCMAKE_BUILD_TYPE=None \
+        -DWITH_ABSEIL=ON \
+        -DWITH_STL=ON \
+        -DWITH_EXAMPLES=OFF \
+        -DWITH_ZPAGES=OFF \
+        -DWITH_OTLP_GRPC=ON \
+        -DWITH_OTLP_HTTP=ON \
+        -DWITH_ZIPKIN=ON \
+        -DWITH_PROMETHEUS=OFF \
+        -DWITH_ASYNC_EXPORT_PREVIEW=OFF \
+        -DWITH_METRICS_EXEMPLAR_PREVIEW=OFF
+      cmake --build build
+      cmake --install build
 
 # Git tuning
 git config --global --add core.compression -1
 
-# build opentracing lib
-cd "$BUILD_PATH/opentracing-cpp-$OPENTRACING_CPP_VERSION"
-mkdir .build
-cd .build
-
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_TESTING=OFF \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DBUILD_MOCKTRACER=OFF \
-      -DBUILD_STATIC_LIBS=ON \
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
-      ..
-
-make
-make install
-
-# build yaml-cpp
-# TODO @timmysilv: remove this and jaeger sed calls once it is fixed in jaeger-client-cpp
-cd "$BUILD_PATH/yaml-cpp-$YAML_CPP_VERSION"
-mkdir .build
-cd .build
-
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
-      -DYAML_BUILD_SHARED_LIBS=ON \
-      -DYAML_CPP_BUILD_TESTS=OFF \
-      -DYAML_CPP_BUILD_TOOLS=OFF \
-      ..
-
-make
-make install
-
-# build jaeger lib
-cd "$BUILD_PATH/jaeger-client-cpp-$JAEGER_VERSION"
-sed -i 's/-Werror/-Wno-psabi/' CMakeLists.txt
-# use the above built yaml-cpp instead until a new version of jaeger-client-cpp fixes the yaml-cpp issue
-# tl;dr new hunter is needed for new yaml-cpp, but new hunter has a conflict with old Thrift and new Boost
-sed -i 's/hunter_add_package(yaml-cpp)/#hunter_add_package(yaml-cpp)/' CMakeLists.txt
-sed -i 's/yaml-cpp::yaml-cpp/yaml-cpp/' CMakeLists.txt
-
-cat <<EOF > export.map
-{
-    global:
-        OpenTracingMakeTracerFactory;
-    local: *;
-};
-EOF
-
-mkdir .build
-cd .build
-
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_TESTING=OFF \
-      -DJAEGERTRACING_BUILD_EXAMPLES=OFF \
-      -DJAEGERTRACING_BUILD_CROSSDOCK=OFF \
-      -DJAEGERTRACING_COVERAGE=OFF \
-      -DJAEGERTRACING_PLUGIN=ON \
-      -DHUNTER_CONFIGURATION_TYPES=Release \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DJAEGERTRACING_WITH_YAML_CPP=ON \
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
-      ..
-
-make
-make install
-
-export HUNTER_INSTALL_DIR=$(cat _3rdParty/Hunter/install-root-dir) \
-
-mv libjaegertracing_plugin.so /usr/local/lib/libjaegertracing_plugin.so
-
-
-# build zipkin lib
-cd "$BUILD_PATH/zipkin-cpp-opentracing-$ZIPKIN_CPP_VERSION"
-
-cat <<EOF > export.map
-{
-    global:
-        OpenTracingMakeTracerFactory;
-    local: *;
-};
-EOF
-
-mkdir .build
-cd .build
-
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DBUILD_PLUGIN=ON \
-      -DBUILD_TESTING=OFF \
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
-      ..
-
-make
-make install
-
-# build msgpack lib
-cd "$BUILD_PATH/msgpack-c-cpp-$MSGPACK_VERSION"
-
-mkdir .build
-cd .build
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DMSGPACK_BUILD_EXAMPLES=OFF \
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
-      ..
-
-make
-make install
-
-# build datadog lib
-cd "$BUILD_PATH/dd-opentracing-cpp-$DATADOG_CPP_VERSION"
-
-mkdir .build
-cd .build
-
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_TESTING=OFF \
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
-      ..
-
-make
-make install
+# # build opentracing lib
+# cd "$BUILD_PATH/opentracing-cpp-$OPENTRACING_CPP_VERSION"
+# mkdir .build
+# cd .build
+# 
+# cmake -DCMAKE_BUILD_TYPE=Release \
+#       -DBUILD_TESTING=OFF \
+#       -DBUILD_SHARED_LIBS=OFF \
+#       -DBUILD_MOCKTRACER=OFF \
+#       -DBUILD_STATIC_LIBS=ON \
+#       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+#       ..
+# 
+# make
+# make install
+# 
+# # build yaml-cpp
+# # TODO @timmysilv: remove this and jaeger sed calls once it is fixed in jaeger-client-cpp
+# cd "$BUILD_PATH/yaml-cpp-$YAML_CPP_VERSION"
+# mkdir .build
+# cd .build
+# 
+# cmake -DCMAKE_BUILD_TYPE=Release \
+#       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+#       -DYAML_BUILD_SHARED_LIBS=ON \
+#       -DYAML_CPP_BUILD_TESTS=OFF \
+#       -DYAML_CPP_BUILD_TOOLS=OFF \
+#       ..
+# 
+# make
+# make install
+# 
+# # build jaeger lib
+# cd "$BUILD_PATH/jaeger-client-cpp-$JAEGER_VERSION"
+# sed -i 's/-Werror/-Wno-psabi/' CMakeLists.txt
+# # use the above built yaml-cpp instead until a new version of jaeger-client-cpp fixes the yaml-cpp issue
+# # tl;dr new hunter is needed for new yaml-cpp, but new hunter has a conflict with old Thrift and new Boost
+# sed -i 's/hunter_add_package(yaml-cpp)/#hunter_add_package(yaml-cpp)/' CMakeLists.txt
+# sed -i 's/yaml-cpp::yaml-cpp/yaml-cpp/' CMakeLists.txt
+# 
+# cat <<EOF > export.map
+# {
+#     global:
+#         OpenTracingMakeTracerFactory;
+#     local: *;
+# };
+# EOF
+# 
+# mkdir .build
+# cd .build
+# 
+# cmake -DCMAKE_BUILD_TYPE=Release \
+#       -DBUILD_TESTING=OFF \
+#       -DJAEGERTRACING_BUILD_EXAMPLES=OFF \
+#       -DJAEGERTRACING_BUILD_CROSSDOCK=OFF \
+#       -DJAEGERTRACING_COVERAGE=OFF \
+#       -DJAEGERTRACING_PLUGIN=ON \
+#       -DHUNTER_CONFIGURATION_TYPES=Release \
+#       -DBUILD_SHARED_LIBS=OFF \
+#       -DJAEGERTRACING_WITH_YAML_CPP=ON \
+#       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+#       ..
+# 
+# make
+# make install
+# 
+# export HUNTER_INSTALL_DIR=$(cat _3rdParty/Hunter/install-root-dir) \
+# 
+# mv libjaegertracing_plugin.so /usr/local/lib/libjaegertracing_plugin.so
+# 
+# 
+# # build zipkin lib
+# cd "$BUILD_PATH/zipkin-cpp-opentracing-$ZIPKIN_CPP_VERSION"
+# 
+# cat <<EOF > export.map
+# {
+#     global:
+#         OpenTracingMakeTracerFactory;
+#     local: *;
+# };
+# EOF
+# 
+# mkdir .build
+# cd .build
+# 
+# cmake -DCMAKE_BUILD_TYPE=Release \
+#       -DBUILD_SHARED_LIBS=OFF \
+#       -DBUILD_PLUGIN=ON \
+#       -DBUILD_TESTING=OFF \
+#       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+#       ..
+# 
+# make
+# make install
+# 
+# # build msgpack lib
+# cd "$BUILD_PATH/msgpack-c-cpp-$MSGPACK_VERSION"
+# 
+# mkdir .build
+# cd .build
+# cmake -DCMAKE_BUILD_TYPE=Release \
+#       -DBUILD_SHARED_LIBS=OFF \
+#       -DMSGPACK_BUILD_EXAMPLES=OFF \
+#       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+#       ..
+# 
+# make
+# make install
+# 
+# # build datadog lib
+# cd "$BUILD_PATH/dd-opentracing-cpp-$DATADOG_CPP_VERSION"
+# 
+# mkdir .build
+# cd .build
+# 
+# cmake -DCMAKE_BUILD_TYPE=Release \
+#       -DBUILD_TESTING=OFF \
+#       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+#       ..
+# 
+# make
+# make install
 
 # Get Brotli source and deps
 cd "$BUILD_PATH"
@@ -657,6 +703,33 @@ WITH_MODULES=" \
 make
 make modules
 make install
+
+export OPENTELEMETRY_CONTRIB_COMMIT=f6d29426ee9b4d6b476c09ca3cb9bed3cf23906f
+cd "$BUILD_PATH"
+
+git clone https://github.com/open-telemetry/opentelemetry-cpp-contrib.git opentelemetry-cpp-contrib-${OPENTELEMETRY_CONTRIB_COMMIT}
+
+cd ${BUILD_PATH}/opentelemetry-cpp-contrib-${OPENTELEMETRY_CONTRIB_COMMIT}
+git reset --hard ${OPENTELEMETRY_CONTRIB_COMMIT}
+
+export OTEL_TEMP_INSTALL=/tmp/otel
+mkdir -p ${OTEL_TEMP_INSTALL}
+
+cd ${BUILD_PATH}/opentelemetry-cpp-contrib-${OPENTELEMETRY_CONTRIB_COMMIT}/instrumentation/nginx
+mkdir -p build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release \
+        -G Ninja \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_INSTALL_PREFIX=${OTEL_TEMP_INSTALL} \
+        -DBUILD_SHARED_LIBS=ON \
+        -DNGINX_VERSION=${NGINX_VERSION} \
+        ..
+cmake --build . -j ${CORES} --target install
+
+mkdir -p /etc/nginx/modules
+cp ${OTEL_TEMP_INSTALL}/otel_ngx_module.so /etc/nginx/modules/otel_ngx_module.so
+
 
 cd "$BUILD_PATH/lua-resty-core-$LUA_RESTY_CORE"
 make install
