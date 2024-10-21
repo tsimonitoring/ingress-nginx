@@ -611,12 +611,55 @@ cd "$BUILD_PATH/nginx-$NGINX_VERSION"
 # apply nginx patches
 for PATCH in `ls /patches`;do
   echo "Patch: $PATCH"
-  if [[ "$PATCH" == *.txt ]]; then
-    patch -p0 < /patches/$PATCH
+  # solve* release-1.11.2-patch-opentelemetry-cpp-and-contrib-and-proto
+  if [ ! "X$PATCH" = "Xnginx-1.21.4-http2.patch" ]; then
+    if [[ "$PATCH" == *.txt ]]; then
+      patch -p0 < /patches/$PATCH
+    else
+      patch -p1 < /patches/$PATCH
+    fi
   else
-    patch -p1 < /patches/$PATCH
+  	echo "Patch: do not patch $PATCH"
   fi
 done
+
+# solve*
+#7 567.3 Patch: nginx-1.21.4-hash_overflow.patch
+#7 567.3 patching file src/core/ngx_hash.c
+#7 567.3 Hunk #1 succeeded at 336 with fuzz 2 (offset 24 lines).
+# ->
+#7 567.3 Patch: nginx-1.21.4-http2.patch
+#7 567.3 patching file src/http/v2/ngx_http_v2.c
+#7 567.3 Hunk #1 succeeded at 361 (offset 14 lines).
+#7 567.3 Hunk #2 succeeded at 1322 (offset 37 lines).
+#7 567.3 Hunk #3 succeeded at 1395 (offset 37 lines).
+#7 567.3 patching file src/http/v2/ngx_http_v2.h
+#7 567.3 patch unexpectedly ends in middle of line
+#7 567.3 Hunk #1 succeeded at 124 with fuzz 1 (offset -7 lines).
+# <-
+#7 567.3 Patch: nginx-1.21.4-init_cycle_pool_release.patch
+#
+# Error in running pod:
+# 2024/10/21 15:20:18 [emerg] 46#46: unknown directive "http2" in /tmp/nginx/nginx-cfg1361366103:299                                                                      │
+# nginx: [emerg] unknown directive "http2" in /tmp/nginx/nginx-cfg1361366103:299                                                                                          │
+# nginx: configuration file /tmp/nginx/nginx-cfg1361366103 test failed                                                                                                    │
+#                                                                                                                                                                         │
+# -------------------------------------------------------------------------------                                                                                         │
+# E1021 15:20:18.855343       6 queue.go:131] "requeuing" err=<                                                                                                           │
+#                                                                                                                                                                         │
+#     -------------------------------------------------------------------------------                                                                                     │
+#     Error: exit status 1                                                                                                                                                │
+#     2024/10/21 15:20:18 [emerg] 46#46: unknown directive "http2" in /tmp/nginx/nginx-cfg1361366103:299                                                                  │
+#     nginx: [emerg] unknown directive "http2" in /tmp/nginx/nginx-cfg1361366103:299                                                                                      │
+#     nginx: configuration file /tmp/nginx/nginx-cfg1361366103 test failed                                                                                                │
+#                                                                                                                                                                         │
+#     -------------------------------------------------------------------------------                                                                                     │
+#  > key="datadog/datadog-cluster-agent-6fnrn"                                                                                                                            │
+# I1021 15:20:18.855630       6 event.go:377] Event(v1.ObjectReference{Kind:"Pod", Namespace:"mbsys-ingress", Name:"ingress-nginx-public-controller-747767ddcc-994ch", UI │
+# -------------------------------------------------------------------------------                                                                                         │
+# Error: exit status 1                                                                                                                                                    │
+
+
 
 WITH_FLAGS="--with-debug \
   --with-compat \
