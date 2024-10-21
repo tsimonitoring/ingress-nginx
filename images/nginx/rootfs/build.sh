@@ -652,7 +652,7 @@ CC_OPT="-g -O2 -fPIE -fstack-protector-strong \
 #  -I$HUNTER_INSTALL_DIR/include \
 
 #LD_OPT="-fPIE -fPIC -pie -Wl,-z,relro -Wl,-z,now -L$HUNTER_INSTALL_DIR/lib"
-LD_OPT="-fPIE -fPIC -pie -Wl,-z,relro -Wl,-z,now -L$HUNTER_INSTALL_DIR/lib"
+LD_OPT="-fPIE -fPIC -pie -Wl,-z,relro -Wl,-z,now"
 
 if [[ ${ARCH} != "aarch64" ]]; then
   WITH_FLAGS+=" --with-file-aio"
