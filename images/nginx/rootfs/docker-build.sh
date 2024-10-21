@@ -15,7 +15,7 @@
 # sudo install k9s /usr/local/bin
 # which html2text >/dev/null 2>&1|| sudo apt install html2text
 # sudo install linux-amd64/helm /usr/local/bin
-
+# sudo su -
 set -x
 set -e
 BRANCH=$(git branch --show-current)
@@ -48,7 +48,10 @@ echo "docker.io/tsimonitoring/nginx:$TAG@sha256:$IMAGEID" > /ingress-nginx/NGINX
 perl -pi -e "s,^FROM ..BASE_IMAGE.,FROM docker.io/tsimonitoring/nginx:$TAG,g;" /ingress-nginx/rootfs/Dockerfile
 # https://kubernetes.github.io/ingress-nginx/developer-guide/getting-started/#custom-docker-image
 cd /ingress-nginx
-export TAG="$TAG"
 export REGISTRY="tsimonitoring"
 export BASE_IMAGE="docker.io/tsimonitoring/nginx:$TAG"
+export TAG="$TAG"
 make build image
+docker image ls
+docker push tsimonitoring/controller:$TAG
+docker image inspect tsimonitoring/controller:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk '{print "image: docker.io/" $1}'
