@@ -40,7 +40,7 @@ echo END;"
 docker image ls
 BRANCH=$(git branch --show-current)
 TAG=${BRANCH%-build-container-without-cloudbuild-patch-opentelemetry-cpp-and-contrib-and-proto}
-TAG=v${TAG#release-}-mre
+TAG=${TAG#release-}-mre
 docker cp docker:/build.log /build-$BRANCH.log
 IMAGEID=$(tail /build-$BRANCH.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
 docker tag $IMAGEID tsimonitoring/nginx:$TAG
