@@ -46,6 +46,7 @@ IMAGEID=$(tail /build-$BRANCH.log|grep "writing image sha256:"|awk '{print $4}'|
 docker tag $IMAGEID tsimonitoring/nginx:$TAG
 docker push tsimonitoring/nginx:$TAG
 docker image ls
+echo "1.23.2" > /ingress-nginx/GOLANG_VERSION
 echo "docker.io/tsimonitoring/nginx:$TAG@sha256:$IMAGEID" > /ingress-nginx/NGINX_BASE
 perl -pi -e "s,^FROM ..BASE_IMAGE.,FROM docker.io/tsimonitoring/nginx:$TAG,g;" /ingress-nginx/rootfs/Dockerfile
 # https://kubernetes.github.io/ingress-nginx/developer-guide/getting-started/#custom-docker-image
