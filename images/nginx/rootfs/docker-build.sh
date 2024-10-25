@@ -73,7 +73,9 @@ test -d ${GZFILE%.tar.gz}.extractdir && rm -r -f ${GZFILE%.tar.gz}.extractdir
 which helm
 helm version
 /usr/local/bin/helm version
-#
+################################################################################
+# go
+apt install -y golang
 ################################################################################
 # build
 cd /ingress-nginx/images/nginx/rootfs
