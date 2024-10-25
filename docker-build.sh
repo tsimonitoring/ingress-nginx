@@ -140,7 +140,7 @@ echo END;"
 docker image ls
 BRANCH=$(git branch --show-current)
 TAG=${BRANCH%-build-container-without-cloudbuild-patch-opentelemetry-cpp-and-contrib-and-proto}
-TAG=${TAG#release-}-mre
+TAG="v${TAG#release-}-mre"
 docker cp docker:/build.log /build-$BRANCH.$DATETIME.log
 IMAGEID=$(tail /build-$BRANCH.$DATETIME.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
 #IMAGEID=$(docker image inspect tsimonitoring/nginx:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk -F: '{print $NF}')
@@ -151,6 +151,9 @@ docker image ls
 echo "1.23.2" > /ingress-nginx/GOLANG_VERSION
 # https://github.com/opencontainers/runc/releases
 perl -pi -e "s,(github.com/opencontainers/runc)(.*),\1 v1.2.0,g;" /ingress-nginx/go.mod
+# https://pkg.go.dev/k8s.io/apiserver (search Latest)
+#perl -pi -e "s,(k8s.io/apiserver)(.*),\1 v0.31.2,g;" /ingress-nginx/go.mod
+perl -pi -e "s/v0.31.1/v0.31.2/g;" /ingress-nginx/go.mod
 #
 echo "docker.io/tsimonitoring/nginx:$TAG@sha256:$IMAGEID" > /ingress-nginx/NGINX_BASE
 perl -pi -e "s,^FROM ..BASE_IMAGE.,FROM docker.io/tsimonitoring/nginx:$TAG,g;" /ingress-nginx/rootfs/Dockerfile
