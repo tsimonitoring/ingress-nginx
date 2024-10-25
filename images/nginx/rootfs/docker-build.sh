@@ -1,6 +1,7 @@
 #!/bin/bash
 set -x
 set -e
+DATETIME=$(date +%Y%m%d_%H%M%S)
 ################################################################################
 # docker
 set +e
@@ -140,7 +141,7 @@ docker image ls
 BRANCH=$(git branch --show-current)
 TAG=${BRANCH%-build-container-without-cloudbuild-patch-opentelemetry-cpp-and-contrib-and-proto}
 TAG=${TAG#release-}-mre
-docker cp docker:/build.log /build-$BRANCH.log
+docker cp docker:/build.log /build-$BRANCH.$DATETIME.log
 IMAGEID=$(tail /build-$BRANCH.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
 docker tag $IMAGEID tsimonitoring/nginx:$TAG
 docker push tsimonitoring/nginx:$TAG
