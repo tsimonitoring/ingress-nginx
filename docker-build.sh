@@ -142,7 +142,8 @@ BRANCH=$(git branch --show-current)
 TAG=${BRANCH%-build-container-without-cloudbuild-patch-opentelemetry-cpp-and-contrib-and-proto}
 TAG=${TAG#release-}-mre
 docker cp docker:/build.log /build-$BRANCH.$DATETIME.log
-IMAGEID=$(tail /build-$BRANCH.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
+#IMAGEID=$(tail /build-$BRANCH.$DATETIME.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
+IMAGEID=$(docker image inspect tsimonitoring/nginx:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk -F: '{print $NF}')
 docker tag $IMAGEID tsimonitoring/nginx:$TAG
 docker push tsimonitoring/nginx:$TAG
 docker image ls
