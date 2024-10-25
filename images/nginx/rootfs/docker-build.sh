@@ -76,6 +76,7 @@ helm version
 #
 ################################################################################
 # build
+cd /ingress-nginx/images/nginx/rootfs
 BRANCH=$(git branch --show-current)
 jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q tsimonitoring:
 [ $? -eq 0 ] || docker login -u tsimonitoring
