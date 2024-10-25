@@ -3,19 +3,28 @@ set -x
 set -e
 ################################################################################
 # docker
+set +e
+which docker >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
 sudo curl https://get.docker.com | sh
 sudo usermod -a -G docker $USER
 sudo chmod o+rw /var/run/docker.sock
 sudo systemctl start docker
 sudo systemctl enable docker
 sudo docker version
+fi
 ################################################################################
 # apt needs
-sudo apt -y install build-essential
-sudo apt -y install golang-go # gccgo-go
-sudo apt-get install build-essential
+sudo apt -y install build-essential jq golang-go # gccgo-go
 ################################################################################
 # kind
+set +e
+which kind >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
 which html2text >/dev/null 2>&1|| sudo apt install -y html2text
 VERSION=$(curl --silent https://github.com/kubernetes-sigs/kind/releases|html2text|grep -E "^v"|grep Latest|head -1|awk '{print $1}')
 curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$VERSION/kind-linux-amd64
@@ -28,8 +37,14 @@ set -e
 chmod +x kind
 sudo install kind /usr/local/bin
 which kind
+fi
 ################################################################################
 # kubectl
+set +e
+which kubectl >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
 cd $HOME
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 set +e
@@ -37,6 +52,7 @@ sudo rm -f /usr/local/bin/kubectl
 set -e
 sudo install kubectl /usr/local/bin
 which kubectl
+fi
 ################################################################################
 # k9s
 #
@@ -46,6 +62,11 @@ which kubectl
 # Test: 
 #   k9s
 #
+set +e
+which k9s >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
 cd $HOME
 which html2text >/dev/null 2>&1|| sudo apt install html2text
 which wget >/dev/null 2>&1|| sudo apt install wget
@@ -65,8 +86,14 @@ test -d k9s_Linux_amd64.extractdir && rm -r -f k9s_Linux_amd64.extractdir
 which k9s
 k9s version
 /usr/local/bin/k9s version
+fi
 ################################################################################
 # helm
+set +e
+which helm >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
 cd $HOME
 which html2text >/dev/null 2>&1|| sudo apt install html2text
 curl --silent https://github.com/helm/helm/releases|html2text|grep Latest|head -1
@@ -83,6 +110,7 @@ test -d ${GZFILE%.tar.gz}.extractdir && rm -r -f ${GZFILE%.tar.gz}.extractdir
 which helm
 helm version
 /usr/local/bin/helm version
+fi
 ################################################################################
 # build
 cd /ingress-nginx/images/nginx/rootfs
