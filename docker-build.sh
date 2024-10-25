@@ -151,7 +151,7 @@ docker image ls
 echo "1.23.2" > /ingress-nginx/GOLANG_VERSION
 # https://github.com/opencontainers/runc/releases
 perl -pi -e "s,(github.com/opencontainers/runc)(.*),\1 v1.2.0,g;" /ingress-nginx/go.mod
-# https://pkg.go.dev/k8s.io/apiserver#section-readme (search Latest)
+# https://pkg.go.dev/k8s.io/apiserver (search Latest)
 #perl -pi -e "s,(k8s.io/apiserver)(.*),\1 v0.31.2,g;" /ingress-nginx/go.mod
 perl -pi -e "s/v0.31.1/v0.31.2/g;" /ingress-nginx/go.mod
 #
