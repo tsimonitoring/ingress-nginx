@@ -1,5 +1,6 @@
 #!/bin/bash
 set -x
+set -e
 ################################################################################
 # docker
 sudo curl https://get.docker.com | sh
@@ -10,12 +11,12 @@ sudo systemctl enable docker
 sudo docker version
 ################################################################################
 # kind
-sudo apt-get install build-essential
+sudo apt -y install build-essential
 sudo apt -y install go
 sudo apt -y install golong-go gccgo-go
 sudo apt -y install golong-go
 sudo apt -y install aptitude
-sudo apt install golang-go
+sudo apt -y install golang-go
 sudo apt-get install build-essential
 sudo apt install kind
 go install sigs.k8s.io/kind@v0.24.0 
