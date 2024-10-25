@@ -1,28 +1,130 @@
 #!/bin/bash
-# ./dockerinstall.sh 
-# sudo apt-get install build-essential
-# sudo apt -y install go
-# sudo apt -y install golong-go gccgo-go
-# sudo apt -y install golong-go
-# sudo apt -y install aptitude
-# sudo apt install golang-go
-# sudo apt-get install build-essential
-# sudo apt install kind
-# go install sigs.k8s.io/kind@v0.24.0 && kind create cluster
-# go install sigs.k8s.io/kind@v0.24.0 
-# sudo install kubectl /usr/local/bin
-# which html2text >/dev/null 2>&1|| sudo apt install html2text
-# sudo install k9s /usr/local/bin
-# which html2text >/dev/null 2>&1|| sudo apt install html2text
-# sudo install linux-amd64/helm /usr/local/bin
-# sudo su -
 set -x
 set -e
+DATETIME=$(date +%Y%m%d_%H%M%S)
+################################################################################
+# docker
+set +e
+which docker >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
+sudo curl https://get.docker.com | sh
+sudo usermod -a -G docker $USER
+sudo chmod o+rw /var/run/docker.sock
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo docker version
+fi
+################################################################################
+# apt needs
+sudo apt -y install build-essential jq golang-go # gccgo-go
+################################################################################
+# kind
+set +e
+which kind >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
+which html2text >/dev/null 2>&1|| sudo apt install -y html2text
+VERSION=$(curl --silent https://github.com/kubernetes-sigs/kind/releases|html2text|grep -E "^v"|grep Latest|head -1|awk '{print $1}')
+curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$VERSION/kind-linux-amd64
+curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$VERSION/kind-linux-amd64.sha256sum
+sha256sum -c kind-linux-amd64.sha256sum || exit 10
+mv kind-linux-amd64 kind
+set +e
+sudo rm -f /usr/local/bin/kind
+set -e
+chmod +x kind
+sudo install kind /usr/local/bin
+which kind
+fi
+################################################################################
+# kubectl
+set +e
+which kubectl >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
+cd $HOME
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+set +e
+sudo rm -f /usr/local/bin/kubectl
+set -e
+sudo install kubectl /usr/local/bin
+which kubectl
+fi
+################################################################################
+# k9s
+#
+# Installation: 
+#   wget https://github.com/derailed/k9s/releases/download/v0.32.4/k9s_Linux_amd64.tar.gz
+#   tar -xzvf k9s_Linux_amd64.tar.gz
+# Test: 
+#   k9s
+#
+set +e
+which k9s >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
+cd $HOME
+which html2text >/dev/null 2>&1|| sudo apt install html2text
+which wget >/dev/null 2>&1|| sudo apt install wget
+VERSION=$(curl --silent https://github.com/derailed/k9s/releases|html2text|grep -E "^v"|grep Latest|head -1|awk '{print $1}')
+echo $VERSION
+rm -f k9s_Linux_amd64.tar.gz
+wget https://github.com/derailed/k9s/releases/download/$VERSION/k9s_Linux_amd64.tar.gz
+mkdir -p k9s_Linux_amd64.extractdir
+cd k9s_Linux_amd64.extractdir
+tar -xivf ../k9s_Linux_amd64.tar.gz
+set +e
+sudo rm /usr/local/bin/k9s
+set -e
+sudo install k9s /usr/local/bin
+cd $HOME
+test -d k9s_Linux_amd64.extractdir && rm -r -f k9s_Linux_amd64.extractdir
+which k9s
+k9s version
+/usr/local/bin/k9s version
+fi
+################################################################################
+# helm
+set +e
+which helm >/dev/null 2>&1
+RC=$?
+set -e
+if [ $RC -ne 0 ]; then
+cd $HOME
+which html2text >/dev/null 2>&1|| sudo apt install html2text
+curl --silent https://github.com/helm/helm/releases|html2text|grep Latest|head -1
+GZFILE=$(curl --silent https://github.com/helm/helm/releases|html2text|grep Latest|head -1|awk '{print $1}'|tr "[A-Z]" "[a-z]"|tr '_' '-'|awk '{print $1 "-linux-amd64.tar.gz"}')
+curl -o $GZFILE https://get.helm.sh/$GZFILE
+test -d ${GZFILE%.tar.gz}.extractdir && rm -r -f ${GZFILE%.tar.gz}.extractdir
+mkdir -p ${GZFILE%.tar.gz}.extractdir
+cd ${GZFILE%.tar.gz}.extractdir
+tar -xif ../$GZFILE
+sudo rm -f /usr/local/bin/helm
+sudo install linux-amd64/helm /usr/local/bin
+cd $HOME
+test -d ${GZFILE%.tar.gz}.extractdir && rm -r -f ${GZFILE%.tar.gz}.extractdir
+which helm
+helm version
+/usr/local/bin/helm version
+fi
+################################################################################
+# build
+cd /ingress-nginx/images/nginx/rootfs
 BRANCH=$(git branch --show-current)
-docker login -u tsimonitoring
+jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q tsimonitoring:
+[ $? -eq 0 ] || docker login -u tsimonitoring
+set +e
 docker stop docker
 docker rm docker
+set -e
+docker pull docker.io/docker
 sudo docker run --name=docker --group-add=0 --privileged --security-opt seccomp=unconfined --user=0 -v /var/run/docker.sock:/var/run/docker.sock -d docker sh -c "while true; do sleep 2000; done"
+set -e
 docker exec -it docker sh -c "\
 docker version;\
 apk update;\
@@ -38,12 +140,18 @@ echo END;"
 docker image ls
 BRANCH=$(git branch --show-current)
 TAG=${BRANCH%-build-container-without-cloudbuild-patch-opentelemetry-cpp-and-contrib-and-proto}
-TAG=v${TAG#release-}-mre
-docker cp docker:/build.log build-$BRANCH.log
-IMAGEID=$(tail build-$BRANCH.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
+TAG=${TAG#release-}-mre
+docker cp docker:/build.log /build-$BRANCH.$DATETIME.log
+IMAGEID=$(tail /build-$BRANCH.$DATETIME.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
+#IMAGEID=$(docker image inspect tsimonitoring/nginx:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk -F: '{print $NF}')
 docker tag $IMAGEID tsimonitoring/nginx:$TAG
 docker push tsimonitoring/nginx:$TAG
 docker image ls
+# https://hub.docker.com/_/golang
+echo "1.23.2" > /ingress-nginx/GOLANG_VERSION
+# https://github.com/opencontainers/runc/releases
+perl -pi -e "s,(github.com/opencontainers/runc)(.*),\1 v1.2.0,g;" /ingress-nginx/go.mod
+#
 echo "docker.io/tsimonitoring/nginx:$TAG@sha256:$IMAGEID" > /ingress-nginx/NGINX_BASE
 perl -pi -e "s,^FROM ..BASE_IMAGE.,FROM docker.io/tsimonitoring/nginx:$TAG,g;" /ingress-nginx/rootfs/Dockerfile
 # https://kubernetes.github.io/ingress-nginx/developer-guide/getting-started/#custom-docker-image
@@ -54,4 +162,4 @@ export TAG="$TAG"
 make build image
 docker image ls
 docker push tsimonitoring/controller:$TAG
-docker image inspect tsimonitoring/controller:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk '{print "image: docker.io/" $1}'
+docker image inspect tsimonitoring/controller:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk '{print "image: docker.io/" $1}'|sed "s/controller/controller:$TAG/g"
