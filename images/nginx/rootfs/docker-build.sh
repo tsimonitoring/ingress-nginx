@@ -10,21 +10,31 @@ sudo systemctl start docker
 sudo systemctl enable docker
 sudo docker version
 ################################################################################
-# kind
+# apt needs
 sudo apt -y install build-essential
-sudo apt -y install go
-sudo apt -y install golong-go gccgo-go
-sudo apt -y install golong-go
-sudo apt -y install aptitude
-sudo apt -y install golang-go
+sudo apt -y install golang-go # gccgo-go
 sudo apt-get install build-essential
-sudo apt install kind
-go install sigs.k8s.io/kind@v0.24.0 
+################################################################################
+# kind
+which html2text >/dev/null 2>&1|| sudo apt install -y html2text
+VERSION=$(curl --silent https://github.com/kubernetes-sigs/kind/releases|html2text|grep -E "^v"|grep Latest|head -1|awk '{print $1}')
+curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$VERSION/kind-linux-amd64
+curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$VERSION/kind-linux-amd64.sha256sum
+sha256sum -c kind-linux-amd64.sha256sum || exit 10
+mv kind-linux-amd64 kind
+set +e
+sudo rm -f /usr/local/bin/kind
+set -e
+chmod +x kind
+sudo install kind /usr/local/bin
+which kind
 ################################################################################
 # kubectl
 cd $HOME
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+set +e
 sudo rm -f /usr/local/bin/kubectl
+set -e
 sudo install kubectl /usr/local/bin
 which kubectl
 ################################################################################
@@ -73,9 +83,6 @@ test -d ${GZFILE%.tar.gz}.extractdir && rm -r -f ${GZFILE%.tar.gz}.extractdir
 which helm
 helm version
 /usr/local/bin/helm version
-################################################################################
-# go
-apt install -y golang
 ################################################################################
 # build
 cd /ingress-nginx/images/nginx/rootfs
