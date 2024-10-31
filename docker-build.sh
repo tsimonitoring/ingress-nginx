@@ -1,7 +1,14 @@
 #!/bin/bash
+[ "X$1" = "X" ] && DOCKERHUBACCOUNT="tsimonitoring" || DOCKERHUBACCOUNT="$1"
+echo "DOCKERHUBACCOUNT=$DOCKERHUBACCOUNT"
+jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q $DOCKERHUBACCOUNT:
+[ $? -eq 0 ] || docker login -u $DOCKERHUBACCOUNT
+#
 set -x
 set -e
+jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q $DOCKERHUBACCOUNT:
 DATETIME=$(date +%Y%m%d_%H%M%S)
+#
 ################################################################################
 # docker
 set +e
@@ -116,8 +123,6 @@ fi
 # build
 cd /ingress-nginx/images/nginx/rootfs
 BRANCH=$(git branch --show-current)
-jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q tsimonitoring:
-[ $? -eq 0 ] || docker login -u tsimonitoring
 set +e
 docker stop docker
 docker rm docker
@@ -143,9 +148,9 @@ TAG=${BRANCH%-build-container-without-cloudbuild-patch-opentelemetry-cpp-and-con
 TAG="v${TAG#release-}-mre"
 docker cp docker:/build.log /build-$BRANCH.$DATETIME.log
 IMAGEID=$(tail /build-$BRANCH.$DATETIME.log|grep "writing image sha256:"|awk '{print $4}'|cut -d: -f2)
-#IMAGEID=$(docker image inspect tsimonitoring/nginx:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk -F: '{print $NF}')
-docker tag $IMAGEID tsimonitoring/nginx:$TAG
-docker push tsimonitoring/nginx:$TAG
+#IMAGEID=$(docker image inspect $DOCKERHUBACCOUNT/nginx:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk -F: '{print $NF}')
+docker tag $IMAGEID $DOCKERHUBACCOUNT/nginx:$TAG
+docker push $DOCKERHUBACCOUNT/nginx:$TAG
 docker image ls
 # https://hub.docker.com/_/golang
 echo "1.23.2" > /ingress-nginx/GOLANG_VERSION
@@ -155,14 +160,14 @@ perl -pi -e "s,(github.com/opencontainers/runc)(.*),\1 v1.2.0,g;" /ingress-nginx
 #perl -pi -e "s,(k8s.io/apiserver)(.*),\1 v0.31.2,g;" /ingress-nginx/go.mod
 perl -pi -e "s/v0.31.1/v0.31.2/g;" /ingress-nginx/go.mod
 #
-echo "docker.io/tsimonitoring/nginx:$TAG@sha256:$IMAGEID" > /ingress-nginx/NGINX_BASE
-perl -pi -e "s,^FROM ..BASE_IMAGE.,FROM docker.io/tsimonitoring/nginx:$TAG,g;" /ingress-nginx/rootfs/Dockerfile
+echo "docker.io/$DOCKERHUBACCOUNT/nginx:$TAG@sha256:$IMAGEID" > /ingress-nginx/NGINX_BASE
+perl -pi -e "s,^FROM ..BASE_IMAGE.,FROM docker.io/$DOCKERHUBACCOUNT/nginx:$TAG,g;" /ingress-nginx/rootfs/Dockerfile
 # https://kubernetes.github.io/ingress-nginx/developer-guide/getting-started/#custom-docker-image
 cd /ingress-nginx
-export REGISTRY="tsimonitoring"
-export BASE_IMAGE="docker.io/tsimonitoring/nginx:$TAG"
+export REGISTRY="$DOCKERHUBACCOUNT"
+export BASE_IMAGE="docker.io/$DOCKERHUBACCOUNT/nginx:$TAG"
 export TAG="$TAG"
 make build image
 docker image ls
-docker push tsimonitoring/controller:$TAG
-docker image inspect tsimonitoring/controller:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk '{print "image: docker.io/" $1}'|sed "s/controller/controller:$TAG/g"
+docker push $DOCKERHUBACCOUNT/controller:$TAG
+docker image inspect $DOCKERHUBACCOUNT/controller:$TAG --format='{{.RepoDigests}}'|tr '[' ' '|tr ']' ' '|awk '{print "image: docker.io/" $1}'|sed "s/controller/controller:$TAG/g"
