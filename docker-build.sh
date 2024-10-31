@@ -134,7 +134,7 @@ docker exec -it docker sh -c "\
 docker version;\
 apk update;\
 apk add -f curl git mc vim unzip zip;\
-git clone https://github.com/$DOCKERHUBACCOUNT/ingress-nginx.git;\
+git clone https://github.com/tsimonitoring/ingress-nginx.git;\
 cd /ingress-nginx;\
 git checkout $BRANCH;\
 git status;\
