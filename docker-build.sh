@@ -1,9 +1,14 @@
 #!/bin/bash
 [ "X$1" = "X" ] && DOCKERHUBACCOUNT="tsimonitoring" || DOCKERHUBACCOUNT="$1"
+echo "DOCKERHUBACCOUNT=$DOCKERHUBACCOUNT"
+jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q $DOCKERHUBACCOUNT:
+[ $? -eq 0 ] || docker login -u $DOCKERHUBACCOUNT
+#
 set -x
 set -e
+jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q $DOCKERHUBACCOUNT:
 DATETIME=$(date +%Y%m%d_%H%M%S)
-echo "DOCKERHUBACCOUNT=$DOCKERHUBACCOUNT"
+#
 ################################################################################
 # docker
 set +e
@@ -118,8 +123,6 @@ fi
 # build
 cd /ingress-nginx/images/nginx/rootfs
 BRANCH=$(git branch --show-current)
-jq -r '.auths["https://index.docker.io/v1/"].auth' $HOME/.docker/config.json|base64 -d|grep -q $DOCKERHUBACCOUNT:
-[ $? -eq 0 ] || docker login -u $DOCKERHUBACCOUNT
 set +e
 docker stop docker
 docker rm docker
